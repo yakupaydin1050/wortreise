@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Claude Code local settings
+.claude/
+
+# temporary / raw data files
+*.txt
+b1_raw.txt
+tmp_words.txt
