@@ -104,11 +104,11 @@ function MainTabs() {
         tabBarInactiveTintColor: '#8896B8',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#DDE3F5',
-          borderTopWidth: 1,
-          elevation: 2,
-          paddingBottom: 10,
-          paddingTop: 8,
+          borderTopColor: '#B8C4E8',
+          borderTopWidth: 1.5,
+          elevation: 4,
+          paddingBottom: 14,
+          paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,

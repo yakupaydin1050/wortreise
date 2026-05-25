@@ -484,7 +484,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
             })()}
             <TextInput
               style={styles.reportInput}
-              placeholder="Açıklama ekle (isteğe bağlı)"
+              placeholder="Hatayı açıkla…"
               placeholderTextColor={C.textFaint}
               value={reportNote}
               onChangeText={setReportNote}
@@ -496,9 +496,12 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
                 <Text style={styles.reportCancelText}>Vazgeç</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.reportSubmitBtn, reportSending && { opacity: 0.6 }]}
+                style={[
+                  styles.reportSubmitBtn,
+                  (reportSending || reportNote.trim().length === 0) && styles.reportSubmitBtnDisabled,
+                ]}
                 onPress={submitReport}
-                disabled={reportSending}
+                disabled={reportSending || reportNote.trim().length === 0}
               >
                 <Text style={styles.reportSubmitText}>{reportSending ? 'Gönderiliyor…' : 'Gönder'}</Text>
               </TouchableOpacity>
@@ -704,4 +707,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2, shadowRadius: 8, elevation: 3,
   },
   reportSubmitText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  reportSubmitBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
 });
