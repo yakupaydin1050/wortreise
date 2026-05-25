@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -106,8 +107,7 @@ function MainTabs() {
           borderTopColor: '#DDE3F5',
           borderTopWidth: 1,
           elevation: 2,
-          height: 72,
-          paddingBottom: 14,
+          paddingBottom: 10,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -171,6 +171,7 @@ export default function App() {
   }
 
   return (
+    <SafeAreaProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
@@ -191,5 +192,6 @@ export default function App() {
         <Stack.Screen name="Dialog" component={DialogScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
