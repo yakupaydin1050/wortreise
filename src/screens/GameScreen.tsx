@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
@@ -93,6 +94,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [reportSentenceId, setReportSentenceId] = useState<string | null>(null);
   const [reportNote, setReportNote] = useState('');
   const [reportSending, setReportSending] = useState(false);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const hasRecorded = useRef(false);
 
   useEffect(() => {
@@ -234,6 +236,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         note: reportNote.trim(),
         createdAt: serverTimestamp(),
       });
+      setReportedIds(prev => new Set(prev).add(reportSentenceId));
       setReportVisible(false);
       Alert.alert('Teşekkürler!', 'Hata bildirimin alındı, inceleyeceğiz.');
     } catch {
@@ -387,10 +390,16 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
             {phase === 'results' && (
               <TouchableOpacity
                 style={styles.reportBtn}
-                onPress={() => openReport(sentence.id)}
+                onPress={() => !reportedIds.has(sentence.id) && openReport(sentence.id)}
+                disabled={reportedIds.has(sentence.id)}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <Text style={styles.reportBtnText}>⚑ Hata Bildir</Text>
+                <Text style={[
+                  styles.reportBtnText,
+                  reportedIds.has(sentence.id) && styles.reportBtnTextReported,
+                ]}>
+                  {reportedIds.has(sentence.id) ? '⚑ Hata bildirildi' : '⚑ Hata Bildir'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -450,11 +459,15 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         animationType="slide"
         onRequestClose={() => setReportVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.reportOverlay}
-          activeOpacity={1}
-          onPress={() => setReportVisible(false)}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+          <TouchableOpacity
+            style={styles.reportOverlay}
+            activeOpacity={1}
+            onPress={() => setReportVisible(false)}
+          />
           <View style={styles.reportSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.reportHandle} />
             <Text style={styles.reportTitle}>Hata Bildir</Text>
@@ -491,7 +504,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
     </SafeAreaView>
@@ -645,9 +658,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4,
   },
   reportBtnText: { fontSize: 11, color: C.textFaint, fontWeight: '500', letterSpacing: 0.2 },
+  reportBtnTextReported: { color: C.danger, fontWeight: '700' },
 
   reportOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)',
   },
   reportSheet: {
     backgroundColor: C.surface,
