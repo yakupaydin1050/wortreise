@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { recordStreakGame, addCoins, shouldPromptReview } from '../utils/storage';
@@ -8,6 +11,8 @@ import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
 import GridBackground from '../components/GridBackground';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_hunt_best_${lvl}`;
 const TIMER_SECONDS = 6;
@@ -18,6 +23,7 @@ const OPTION_COLORS = ['#F59E0B', '#3B5BDB', '#7C3AED', '#0891B2'] as const;
 
 interface HuntWord { id: string; german: string; tr: string }
 interface Best { streak: number; seconds: number }
+interface HistoryItem { word: HuntWord; type: 'correct' | 'wrong' | 'timeout' }
 
 const C = {
   bg: '#F8F9FE', surface: '#FFFFFF',
@@ -82,12 +88,22 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
   const [resultStreak, setResultStreak] = useState(0);
   const [resultSeconds, setResultSeconds] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // Report state
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportWord, setReportWord] = useState<HuntWord | null>(null);
+  const [reportNote, setReportNote] = useState('');
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
 
   const streakRef = useRef(0);
   const startTimeRef = useRef(0);
   const bestRef = useRef<Best | null>(null);
   const phaseRef = useRef<'start' | 'playing' | 'result'>('start');
   const feedbackRef = useRef<'correct' | 'wrong' | 'timeout' | null>(null);
+  const currentWordRef = useRef<HuntWord | null>(null);
   bestRef.current = best;
   phaseRef.current = phase;
   feedbackRef.current = feedback;
@@ -101,6 +117,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
   const timerAnim = useRef(new Animated.Value(1)).current;
 
   const currentWord = words.length > 0 ? words[wordIdx % words.length] : null;
+  currentWordRef.current = currentWord;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const currentOptions = useMemo(() => currentWord ? buildOptions(currentWord, allWords) : [], [currentWord?.id, allWords]);
@@ -149,6 +166,8 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
 
   function handleTimeout() {
     if (phaseRef.current !== 'playing' || feedbackRef.current !== null) return;
+    const word = currentWordRef.current;
+    if (word) setHistory(prev => [...prev, { word, type: 'timeout' }]);
     stopTimer();
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
@@ -206,6 +225,8 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
     setFeedback(null);
     setChosen(null);
     setTimeLeft(TIMER_SECONDS);
+    setHistory([]);
+    setReportedIds(new Set());
     startTimeRef.current = Date.now();
     phaseRef.current = 'playing';
     setPhase('playing');
@@ -217,6 +238,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
     setChosen(opt.id);
     const isCorrect = opt.id === currentWord.id;
     if (isCorrect) {
+      setHistory(prev => [...prev, { word: currentWord, type: 'correct' }]);
       Animated.sequence([
         Animated.spring(wordScale, { toValue: 1.08, useNativeDriver: true, speed: 60, bounciness: 6 }),
         Animated.spring(wordScale, { toValue: 1, useNativeDriver: true, speed: 25, bounciness: 0 }),
@@ -226,6 +248,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
       setFeedback('correct');
       advance(true, 900);
     } else {
+      setHistory(prev => [...prev, { word: currentWord, type: 'wrong' }]);
       Animated.sequence([
         Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: -14, duration: 50, useNativeDriver: true }),
@@ -234,6 +257,37 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
       ]).start();
       setFeedback('wrong');
       advance(false, 1500);
+    }
+  }
+
+  function openReport(word: HuntWord) {
+    setReportWord(word);
+    setReportNote('');
+    setReportSent(false);
+    setReportVisible(true);
+  }
+
+  async function submitReport() {
+    if (!reportWord || reportNote.trim().length === 0 || reportSending) return;
+    setReportSending(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        game: 'kelimeAvi',
+        level,
+        direction,
+        german: reportWord.german,
+        tr: reportWord.tr,
+        wordId: reportWord.id,
+        note: reportNote.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setReportedIds(prev => new Set(prev).add(reportWord.id));
+      setReportSent(true);
+      setTimeout(() => setReportVisible(false), 1400);
+    } catch {
+      // silent fail
+    } finally {
+      setReportSending(false);
     }
   }
 
@@ -353,28 +407,126 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
           <View style={{ width: 44 }} />
         </View>
 
-        <View style={styles.resultBody}>
-          <Text style={styles.resultIcon}>{resultStreak >= 5 ? '🎯' : '⭐'}</Text>
-          <Text style={styles.resultStreakNum}>{resultStreak}</Text>
-          <Text style={styles.resultStreakLabel}>kelime</Text>
-          {resultStreak > 0 && (
-            <Text style={styles.resultTime}>{resultSeconds} saniyede</Text>
-          )}
-          {isNewRecord ? (
-            <View style={styles.newRecordBadge}>
-              <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
+        <ScrollView contentContainerStyle={styles.resultScroll} showsVerticalScrollIndicator={false}>
+          {/* Stats card at top */}
+          <View style={styles.resultStatsCard}>
+            <Text style={styles.resultIcon}>{resultStreak >= 5 ? '🎯' : '⭐'}</Text>
+            <View style={styles.resultStatsRow}>
+              <Text style={styles.resultStreakNum}>{resultStreak}</Text>
+              <Text style={styles.resultStreakLabel}>kelime</Text>
             </View>
-          ) : best && best.streak > 0 ? (
-            <View style={styles.prevRecord}>
-              <Text style={styles.prevRecordText}>
-                Rekor: {best.streak} kelime · {best.seconds}sn
-              </Text>
-            </View>
-          ) : null}
+            {resultStreak > 0 && (
+              <Text style={styles.resultTime}>{resultSeconds} saniyede</Text>
+            )}
+            {isNewRecord ? (
+              <View style={styles.newRecordBadge}>
+                <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
+              </View>
+            ) : best && best.streak > 0 ? (
+              <View style={styles.prevRecord}>
+                <Text style={styles.prevRecordText}>
+                  Rekor: {best.streak} kelime · {best.seconds}sn
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
           <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.85}>
             <Text style={styles.startBtnText}>Tekrar Ava Çık →</Text>
           </TouchableOpacity>
-        </View>
+
+          {/* History */}
+          {history.length > 0 && (
+            <View style={styles.historySection}>
+              <Text style={styles.historyLabel}>CEVAPLANAN KELİMELER</Text>
+              {history.map((item, idx) => {
+                const isReported = reportedIds.has(item.word.id);
+                const statusColor =
+                  item.type === 'correct' ? C.success :
+                  item.type === 'wrong' ? C.danger : C.timeout;
+                const statusIcon =
+                  item.type === 'correct' ? '✓' :
+                  item.type === 'wrong' ? '✗' : '⏱';
+                return (
+                  <View
+                    key={item.word.id + idx}
+                    style={[styles.historyRow, { borderLeftColor: statusColor }]}
+                  >
+                    <Text style={[styles.historyStatusIcon, { color: statusColor }]}>
+                      {statusIcon}
+                    </Text>
+                    <View style={styles.historyWordInfo}>
+                      <Text style={styles.historyGerman}>{item.word.german}</Text>
+                      <Text style={styles.historyTr}>{item.word.tr}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.reportIconBtn}
+                      onPress={() => openReport(item.word)}
+                      disabled={isReported}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={[styles.reportIconText, isReported && styles.reportIconTextReported]}>
+                        ⚑
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Report modal */}
+        <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => !reportSending && setReportVisible(false)}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <TouchableOpacity
+              style={styles.reportOverlay}
+              activeOpacity={1}
+              onPress={() => !reportSending && setReportVisible(false)}
+            />
+            <View style={styles.reportSheet}>
+              <View style={styles.reportHandle} />
+              {reportSent ? (
+                <View style={styles.reportSuccessBox}>
+                  <Text style={styles.reportSuccessIcon}>✓</Text>
+                  <Text style={styles.reportSuccessText}>Raporun iletildi, teşekkürler!</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.reportTitle}>Hata Bildir</Text>
+                  {reportWord && (
+                    <View style={styles.reportWordBox}>
+                      <Text style={styles.reportWordDe}>{reportWord.german}</Text>
+                      <Text style={styles.reportWordTr}>{reportWord.tr}</Text>
+                    </View>
+                  )}
+                  <TextInput
+                    style={styles.reportInput}
+                    placeholder="Hatayı açıkla (zorunlu)…"
+                    placeholderTextColor={C.textFaint}
+                    value={reportNote}
+                    onChangeText={setReportNote}
+                    multiline
+                    maxLength={300}
+                    autoFocus
+                  />
+                  <View style={styles.reportActions}>
+                    <TouchableOpacity style={styles.reportCancelBtn} onPress={() => setReportVisible(false)}>
+                      <Text style={styles.reportCancelText}>Vazgeç</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.reportSubmitBtn, (reportSending || reportNote.trim().length === 0) && styles.reportSubmitBtnDisabled]}
+                      onPress={submitReport}
+                      disabled={reportSending || reportNote.trim().length === 0}
+                    >
+                      <Text style={styles.reportSubmitText}>{reportSending ? 'Gönderiliyor…' : 'Gönder'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -595,23 +747,111 @@ const styles = StyleSheet.create({
   },
   startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
 
-  resultBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 14 },
-  resultIcon: { fontSize: 68, marginBottom: 4 },
-  resultStreakNum: { fontSize: 72, fontWeight: '900', color: C.text, letterSpacing: -2 },
-  resultStreakLabel: { fontSize: 18, fontWeight: '700', color: C.textDim, marginTop: -12 },
-  resultTime: { fontSize: 15, color: C.textFaint, fontWeight: '500' },
+  // Result
+  resultScroll: {
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, gap: 16, flexGrow: 1,
+  },
+  resultStatsCard: {
+    backgroundColor: C.primaryBg, borderRadius: 20, padding: 24,
+    alignItems: 'center', gap: 6,
+    borderWidth: 1, borderColor: 'rgba(8,145,178,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+  },
+  resultIcon: { fontSize: 52, marginBottom: 4 },
+  resultStatsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  resultStreakNum: { fontSize: 64, fontWeight: '900', color: C.text, letterSpacing: -2, lineHeight: 70 },
+  resultStreakLabel: { fontSize: 18, fontWeight: '700', color: C.textDim, marginBottom: 10 },
+  resultTime: { fontSize: 14, color: C.textFaint, fontWeight: '500' },
   newRecordBadge: {
     backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 14,
-    paddingHorizontal: 22, paddingVertical: 11,
+    paddingHorizontal: 22, paddingVertical: 10, marginTop: 4,
     borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.3)',
   },
-  newRecordText: { fontSize: 16, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
+  newRecordText: { fontSize: 15, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
   prevRecord: {
     backgroundColor: 'rgba(8,145,178,0.07)', borderRadius: 10,
-    paddingHorizontal: 18, paddingVertical: 9,
+    paddingHorizontal: 18, paddingVertical: 8, marginTop: 4,
     borderWidth: 1, borderColor: C.border,
   },
   prevRecordText: { fontSize: 13, color: C.textDim, fontWeight: '500' },
+
+  // History
+  historySection: { gap: 8 },
+  historyLabel: {
+    fontSize: 10, fontWeight: '700', color: C.textFaint,
+    letterSpacing: 2, marginBottom: 2,
+  },
+  historyRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surface, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: C.border,
+    borderLeftWidth: 4,
+  },
+  historyStatusIcon: { fontSize: 16, fontWeight: '800', width: 20, textAlign: 'center' },
+  historyWordInfo: { flex: 1, gap: 2 },
+  historyGerman: { fontSize: 14, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  historyTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
+  reportIconBtn: {
+    width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(220,38,38,0.07)', borderWidth: 1, borderColor: 'rgba(220,38,38,0.2)',
+  },
+  reportIconText: { fontSize: 16, color: C.danger },
+  reportIconTextReported: { color: C.textFaint },
+
+  // Report modal
+  reportOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)',
+  },
+  reportSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 32,
+    borderTopWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+  },
+  reportHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
+  },
+  reportTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: 0.2, marginBottom: 12 },
+  reportWordBox: {
+    backgroundColor: C.primaryBg, borderRadius: 12, padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(8,145,178,0.2)', gap: 3,
+  },
+  reportWordDe: { fontSize: 15, fontWeight: '700', color: C.text },
+  reportWordTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
+  reportInput: {
+    backgroundColor: '#F8F9FE', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, fontWeight: '500',
+    borderWidth: 1.5, borderColor: C.borderBright,
+    minHeight: 80, textAlignVertical: 'top', marginBottom: 16,
+  },
+  reportActions: { flexDirection: 'row', gap: 10 },
+  reportCancelBtn: {
+    flex: 1, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    backgroundColor: C.surface,
+  },
+  reportCancelText: { fontSize: 14, fontWeight: '700', color: C.textDim },
+  reportSubmitBtn: {
+    flex: 2, backgroundColor: C.danger,
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    shadowColor: C.danger, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+  },
+  reportSubmitBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0 },
+  reportSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  reportSuccessBox: { alignItems: 'center', paddingVertical: 20, gap: 12 },
+  reportSuccessIcon: {
+    fontSize: 38, color: '#1A9E6E',
+    backgroundColor: 'rgba(26,158,110,0.12)', borderRadius: 28,
+    width: 56, height: 56, textAlign: 'center', lineHeight: 56, overflow: 'hidden',
+  },
+  reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
 
   gameBody: {
     flex: 1, alignItems: 'center', justifyContent: 'space-between',

@@ -359,6 +359,8 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         </View>
 
         {/* Footer */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>HAKKINDA</Text>
         <View style={styles.footerCard}>
           <Text style={styles.footerFlag}>🇩🇪</Text>
           <Text style={styles.footerAppName}>Wortreise</Text>
@@ -366,6 +368,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           <View style={styles.footerDivider} />
           <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
           <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
+        </View>
         </View>
 
       </ScrollView>
@@ -452,7 +455,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  container: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 48, gap: 24 },
+  container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 16 },
 
   heroCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -578,7 +581,7 @@ const styles = StyleSheet.create({
 
   streakCard: {
     backgroundColor: 'rgba(217,119,6,0.07)',
-    borderRadius: 18, padding: 20,
+    borderRadius: 18, padding: 14,
     flexDirection: 'row', alignItems: 'center', gap: 14,
     borderWidth: 1, borderColor: 'rgba(217,119,6,0.28)',
     borderLeftWidth: 4, borderLeftColor: C.warning,
@@ -597,12 +600,12 @@ const styles = StyleSheet.create({
   },
   streakBadgeNum: { fontSize: 20, fontWeight: '800', color: C.warning },
 
-  section: { gap: 10, marginBottom: 4 },
+  section: { gap: 8 },
   sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
 
   todayCard: {
     backgroundColor: C.primaryBg,
-    borderRadius: 18, padding: 20, gap: 14,
+    borderRadius: 18, padding: 14, gap: 10,
     borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
     borderLeftWidth: 4, borderLeftColor: C.primary,
     shadowColor: C.primary,
@@ -611,7 +614,7 @@ const styles = StyleSheet.create({
   },
   todayMetrics: { flexDirection: 'row', alignItems: 'center' },
   todayMetric: { flex: 1, alignItems: 'center', gap: 4 },
-  todayMetricNum: { fontSize: 32, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  todayMetricNum: { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   todayMetricLabel: { fontSize: 12, fontWeight: '600', color: C.textDim, letterSpacing: 0.3 },
   todayMetricSep: { width: 1, height: 38, backgroundColor: C.border, marginHorizontal: 12 },
   goalDonePill: {
@@ -627,19 +630,19 @@ const styles = StyleSheet.create({
   statBox: {
     flex: 1, minWidth: '44%',
     backgroundColor: C.successBg,
-    borderRadius: 16, padding: 20, alignItems: 'center', gap: 6,
+    borderRadius: 16, padding: 14, alignItems: 'center', gap: 4,
     borderWidth: 1, borderColor: 'rgba(26,158,110,0.28)',
     borderLeftWidth: 4, borderLeftColor: C.success,
     shadowColor: C.success,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1, shadowRadius: 4, elevation: 1,
   },
-  statValue: { fontSize: 30, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  statValue: { fontSize: 24, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   statLabel: { fontSize: 12, color: C.textDim, fontWeight: '700', letterSpacing: 0.5 },
 
   shareCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 18, paddingVertical: 16,
+    paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 18, borderWidth: 1,
     backgroundColor: 'rgba(59,91,219,0.07)',
     borderColor: 'rgba(59,91,219,0.28)',
@@ -663,7 +666,7 @@ const styles = StyleSheet.create({
 
   actionCard: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 20,
+    paddingHorizontal: 16, paddingVertical: 14,
     borderRadius: 18, borderWidth: 1,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
@@ -705,14 +708,13 @@ const styles = StyleSheet.create({
 
   footerCard: {
     alignItems: 'center', gap: 4,
-    paddingVertical: 28, paddingHorizontal: 20,
+    paddingVertical: 18, paddingHorizontal: 20,
     borderRadius: 20, borderWidth: 1,
     backgroundColor: C.primaryBg,
     borderColor: 'rgba(59,91,219,0.28)',
     borderLeftWidth: 4, borderLeftColor: C.primary,
     shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
-    marginTop: 4,
   },
   footerFlag: { fontSize: 28, marginBottom: 4 },
   footerAppName: { fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: 0.5 },

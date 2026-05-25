@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, Dimensions, ScrollView,
+  Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +12,8 @@ import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
 import GridBackground from '../components/GridBackground';
+import { db } from '../utils/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type Difficulty = '4x3' | '4x4';
 const PAIR_COUNTS: Record<Difficulty, number> = { '4x3': 6, '4x4': 8 };
@@ -21,7 +24,6 @@ const COLS = 4;
 const GAP = 8;
 const H_PAD = 16;
 const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP * (COLS - 1)) / COLS);
-// CARD_H is computed dynamically in the component using screen height + safe area insets
 
 const C = {
   bg: '#F8F9FE', surface: '#FFFFFF',
@@ -31,6 +33,7 @@ const C = {
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
   success: '#1A9E6E', successBg: 'rgba(26,158,110,0.12)',
   warning: '#D97706', warningBg: 'rgba(217,119,6,0.10)',
+  danger: '#E03E3E', dangerBg: 'rgba(224,62,62,0.10)',
 };
 
 interface WordPair { id: string; german: string; tr: string }
@@ -82,6 +85,8 @@ interface MemCard {
   isMatched: boolean;
   color: string;
 }
+
+interface ReportItem { pairId: string; german: string; tr: string }
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -148,7 +153,6 @@ function FlipCard({ card, onPress, cardH, cardW, celebratePair }: { card: MemCar
     elevation: 2,
   } : {};
 
-  // celebration pop + confetti when this card's pair matched
   useEffect(() => {
     if (!celebratePair || celebratePair.pairId !== card.pairId) return;
     pop.setValue(1);
@@ -167,7 +171,7 @@ function FlipCard({ card, onPress, cardH, cardW, celebratePair }: { card: MemCar
       disabled={card.isFlipped || card.isMatched}
       activeOpacity={0.75}
     >
-      <View style={[cardStyles.wrapper, { width: cardW, height: cardH }]}> 
+      <View style={[cardStyles.wrapper, { width: cardW, height: cardH }]}>
         {/* Back face */}
         <Animated.View style={[
           cardStyles.face, cardStyles.faceBack, { height: cardH },
@@ -195,9 +199,8 @@ function FlipCard({ card, onPress, cardH, cardW, celebratePair }: { card: MemCar
           </Text>
           {card.isMatched && <Text style={[cardStyles.checkmark, { color: card.color }]}>✓</Text>}
 
-          {/* simple confetti dots */}
           {celebratePair && celebratePair.pairId === card.pairId && (
-            <Animated.View pointerEvents="none" style={[cardStyles.confettiContainer, { height: cardH }] }>
+            <Animated.View pointerEvents="none" style={[cardStyles.confettiContainer, { height: cardH }]}>
               {new Array(6).fill(0).map((_, i) => {
                 const angle = (i - 3) * 18;
                 const tx = confetti.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(angle * Math.PI / 180) * 40] });
@@ -265,6 +268,14 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
   const [wasAbandoned, setWasAbandoned] = useState(false);
   const [completedTime, setCompletedTime] = useState<number | null>(null);
 
+  // report state
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportItem, setReportItem] = useState<ReportItem | null>(null);
+  const [reportNote, setReportNote] = useState('');
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+
   const pairCount = PAIR_COUNTS[difficulty];
   const rows = pairCount === 6 ? 3 : 4;
   const cardW = Math.floor((SCREEN_W - H_PAD * 2 - GAP * (COLS - 1)) / COLS);
@@ -296,7 +307,6 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     setPhase('reviewing');
   }, [matchedCount, phase, pairCount]);
 
-  // Save record immediately when game ends, regardless of which button the user presses next.
   useEffect(() => {
     if (completedTime === null || wasForcedRef.current) return;
     const isNew = best === null || completedTime < best;
@@ -320,6 +330,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     setIsNewRecord(false);
     setWasAbandoned(false);
     setCompletedTime(null);
+    setReportedIds(new Set());
     wasForcedRef.current = false;
     setPhase('playing');
   }, [difficulty, allPairs]);
@@ -355,14 +366,12 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
         setLocked(true);
 
         if (firstCard.pairId === card.pairId) {
-          // trigger celebration for this pair
           setCelebratePair({ pairId: card.pairId, color: card.color });
           setTimeout(() => {
             setCards(p => p.map(c =>
               c.uid === firstUid || c.uid === uid ? { ...c, isFlipped: true, isMatched: true } : c,
             ));
             setLocked(false);
-            // clear celebration shortly after
             setTimeout(() => setCelebratePair(null), 700);
           }, 500);
         } else {
@@ -380,6 +389,53 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     });
   }, [locked, phase]);
 
+  const openReport = useCallback((item: ReportItem) => {
+    setReportItem(item);
+    setReportNote('');
+    setReportSent(false);
+    setReportVisible(true);
+  }, []);
+
+  const submitReport = useCallback(async () => {
+    if (!reportItem) return;
+    setReportSending(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        game: 'hafiza',
+        level,
+        difficulty,
+        german: reportItem.german,
+        tr: reportItem.tr,
+        wordId: reportItem.pairId,
+        note: reportNote.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setReportedIds(prev => new Set(prev).add(reportItem.pairId));
+      setReportSent(true);
+      setTimeout(() => setReportVisible(false), 1400);
+    } catch (_) {
+      // silently fail
+    } finally {
+      setReportSending(false);
+    }
+  }, [reportItem, reportNote, level, difficulty]);
+
+  const playedPairs = useMemo<ReportItem[]>(() => {
+    const seen = new Set<string>();
+    const result: ReportItem[] = [];
+    for (const card of cards) {
+      if (!seen.has(card.pairId)) {
+        seen.add(card.pairId);
+        const deCard = cards.find(c => c.pairId === card.pairId && c.lang === 'de');
+        const trCard = cards.find(c => c.pairId === card.pairId && c.lang === 'tr');
+        if (deCard && trCard) {
+          result.push({ pairId: card.pairId, german: deCard.word, tr: trCard.word });
+        }
+      }
+    }
+    return result;
+  }, [cards]);
+
   const header = (sub?: string, onBack?: () => void) => (
     <View style={styles.header}>
       <TouchableOpacity
@@ -395,6 +451,59 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
       </View>
       <View style={{ width: 44 }} />
     </View>
+  );
+
+  // ── Report Modal ─────────────────────────────────────────────────────────────
+  const canSubmit = reportNote.trim().length > 0;
+  const reportModal = (
+    <Modal visible={reportVisible} transparent animationType="fade" onRequestClose={() => !reportSending && setReportVisible(false)}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.modalBox}>
+          {reportSent ? (
+            <View style={styles.modalSuccessBox}>
+              <Text style={styles.modalSuccessIcon}>✓</Text>
+              <Text style={styles.modalSuccessText}>Raporun iletildi, teşekkürler!</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.modalTitle}>Hata Bildir</Text>
+              {reportItem && (
+                <View style={styles.modalWordBox}>
+                  <Text style={styles.modalWordDe}>{reportItem.german}</Text>
+                  <Text style={styles.modalWordTr}>{reportItem.tr}</Text>
+                </View>
+              )}
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Hatayı açıkla…"
+                placeholderTextColor={C.textFaint}
+                value={reportNote}
+                onChangeText={setReportNote}
+                multiline
+                numberOfLines={3}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setReportVisible(false)} disabled={reportSending}>
+                  <Text style={styles.modalCancelText}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalSubmit, !canSubmit && styles.modalSubmitDisabled]}
+                  onPress={submitReport}
+                  disabled={reportSending || !canSubmit}
+                >
+                  {reportSending
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.modalSubmitText}>Gönder</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 
   // ── START ───────────────────────────────────────────────────────────────────
@@ -473,24 +582,56 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
       <SafeAreaView style={styles.safe}>
         <GridBackground />
         {header(wasAbandoned ? 'Çözümler' : 'Tebrikler!', () => setPhase('start'))}
-        <View style={styles.resultBody}>
-          <Text style={styles.resultIcon}>{wasAbandoned ? '💡' : '🎉'}</Text>
-          <Text style={styles.resultTimeNum}>{formatTime(displayTime)}</Text>
-          <Text style={styles.resultTimeLabel}>{wasAbandoned ? 'geçen süre' : 'sürede tamamladın'}</Text>
-          <Text style={styles.resultMoves}>{moves} deneme</Text>
-          {!wasAbandoned && isNewRecord ? (
-            <View style={styles.newRecordBadge}>
-              <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
-            </View>
-          ) : !wasAbandoned && best !== null ? (
-            <View style={styles.prevRecord}>
-              <Text style={styles.prevRecordText}>Rekor: {formatTime(best)}</Text>
-            </View>
-          ) : null}
+        {reportModal}
+        <ScrollView contentContainerStyle={styles.resultScroll} showsVerticalScrollIndicator={false}>
+          {/* Stats card */}
+          <View style={styles.resultStatsCard}>
+            <Text style={styles.resultIcon}>{wasAbandoned ? '💡' : '🎉'}</Text>
+            <Text style={styles.resultTimeNum}>{formatTime(displayTime)}</Text>
+            <Text style={styles.resultTimeLabel}>{wasAbandoned ? 'geçen süre' : 'sürede tamamladın'}</Text>
+            <Text style={styles.resultMoves}>{moves} deneme</Text>
+            {!wasAbandoned && isNewRecord ? (
+              <View style={styles.newRecordBadge}>
+                <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
+              </View>
+            ) : !wasAbandoned && best !== null ? (
+              <View style={styles.prevRecord}>
+                <Text style={styles.prevRecordText}>Rekor: {formatTime(best)}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Replay button */}
           <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.85}>
             <Text style={styles.startBtnText}>Tekrar Oyna →</Text>
           </TouchableOpacity>
-        </View>
+
+          {/* Played pairs list */}
+          {playedPairs.length > 0 && (
+            <View style={styles.historySection}>
+              <Text style={styles.historyLabel}>OYNANAN ÇİFTLER</Text>
+              {playedPairs.map(item => {
+                const isReported = reportedIds.has(item.pairId);
+                return (
+                  <View key={item.pairId} style={styles.historyRow}>
+                    <View style={styles.historyWords}>
+                      <Text style={styles.historyDe}>{item.german}</Text>
+                      <Text style={styles.historyTr}>{item.tr}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.reportIconBtn}
+                      onPress={() => openReport(item)}
+                      disabled={isReported}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={[styles.reportIconText, isReported && styles.reportIconTextReported]}>⚑</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -626,26 +767,107 @@ const styles = StyleSheet.create({
   },
   startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
 
-  resultBody: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 32, gap: 12,
+  resultScroll: {
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, gap: 16,
+    flexGrow: 1,
   },
-  resultIcon: { fontSize: 64, marginBottom: 4 },
-  resultTimeNum: { fontSize: 64, fontWeight: '900', color: C.text, letterSpacing: -2 },
-  resultTimeLabel: { fontSize: 17, fontWeight: '700', color: C.textDim, marginTop: -10 },
-  resultMoves: { fontSize: 14, color: C.textFaint, fontWeight: '500' },
+  resultStatsCard: {
+    backgroundColor: C.surface, borderRadius: 20,
+    padding: 24, alignItems: 'center', gap: 6,
+    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.18)',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1, shadowRadius: 10, elevation: 3,
+  },
+  resultIcon: { fontSize: 48, marginBottom: 4 },
+  resultTimeNum: { fontSize: 56, fontWeight: '900', color: C.text, letterSpacing: -2 },
+  resultTimeLabel: { fontSize: 15, fontWeight: '700', color: C.textDim, marginTop: -6 },
+  resultMoves: { fontSize: 13, color: C.textFaint, fontWeight: '500' },
   newRecordBadge: {
     backgroundColor: C.warningBg, borderRadius: 14,
     paddingHorizontal: 22, paddingVertical: 11,
     borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.3)',
+    marginTop: 4,
   },
   newRecordText: { fontSize: 16, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
   prevRecord: {
     backgroundColor: C.primaryBg, borderRadius: 10,
     paddingHorizontal: 18, paddingVertical: 9,
     borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)',
+    marginTop: 4,
   },
   prevRecordText: { fontSize: 13, color: C.textDim, fontWeight: '500' },
+
+  historySection: { gap: 8 },
+  historyLabel: {
+    fontSize: 10, fontWeight: '700', color: C.textFaint,
+    letterSpacing: 1.5, marginBottom: 2,
+  },
+  historyRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.surface, borderRadius: 14,
+    paddingVertical: 12, paddingLeft: 14, paddingRight: 10,
+    borderWidth: 1, borderColor: C.border,
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+  },
+  historyWords: { flex: 1, gap: 2 },
+  historyDe: { fontSize: 15, fontWeight: '700', color: C.text },
+  historyTr: { fontSize: 13, color: C.textDim },
+  reportIconBtn: {
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8,
+  },
+  reportIconText: { fontSize: 18, color: C.danger },
+  reportIconTextReported: { color: C.textFaint, opacity: 0.4 },
+
+  // report modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', padding: 24,
+  },
+  modalBox: {
+    width: '100%', backgroundColor: C.surface, borderRadius: 20,
+    padding: 24, gap: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 24, elevation: 10,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center' },
+  modalWordBox: {
+    backgroundColor: C.primaryBg, borderRadius: 12,
+    padding: 12, alignItems: 'center', gap: 4,
+    borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)',
+  },
+  modalWordDe: { fontSize: 16, fontWeight: '700', color: C.primary },
+  modalWordTr: { fontSize: 13, color: C.textDim },
+  modalInput: {
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    padding: 12, fontSize: 14, color: C.text,
+    minHeight: 72, textAlignVertical: 'top',
+  },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalCancel: {
+    flex: 1, borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  modalCancelText: { fontSize: 15, fontWeight: '700', color: C.textDim },
+  modalSubmit: {
+    flex: 1, backgroundColor: C.primary, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+  },
+  modalSubmitText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  modalSubmitDisabled: { backgroundColor: C.border, shadowOpacity: 0 },
+  modalSuccessBox: {
+    alignItems: 'center', paddingVertical: 16, gap: 10,
+  },
+  modalSuccessIcon: {
+    fontSize: 42, color: C.success,
+    backgroundColor: C.successBg, borderRadius: 28,
+    width: 56, height: 56, textAlign: 'center', lineHeight: 56,
+    overflow: 'hidden',
+  },
+  modalSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
+
   actionBar: {
     flexDirection: 'row', justifyContent: 'flex-end',
     paddingHorizontal: 16, paddingVertical: 6,

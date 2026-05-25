@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { recordStreakGame, addCoins } from '../utils/storage';
@@ -7,17 +10,19 @@ import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
 import GridBackground from '../components/GridBackground';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_artikel_best_${lvl}`;
 const TIMER_SECONDS = 8;
 const NOTCH_COUNT = 10;
 
 type Article = 'der' | 'die' | 'das';
-// 'correct' | 'wrong' | 'timeout' | null  — mirrors WortDorf pattern
 type Feedback = 'correct' | 'wrong' | 'timeout' | null;
 type Phase = 'start' | 'playing' | 'result';
 interface ArtikelWord { id: string; article: Article; noun: string; tr: string }
 interface Best { streak: number; seconds: number }
+interface HistoryItem { word: ArtikelWord; type: 'correct' | 'wrong' | 'timeout' }
 
 function buildArtikelWords(bank: WordEntry[]): ArtikelWord[] {
   const m: Record<string, string> = {};
@@ -80,13 +85,22 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   const [resultStreak, setResultStreak] = useState(0);
   const [resultSeconds, setResultSeconds] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Refs for stale-closure safety
+  // Report state
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportWord, setReportWord] = useState<ArtikelWord | null>(null);
+  const [reportNote, setReportNote] = useState('');
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+
   const streakRef = useRef(0);
   const startTimeRef = useRef(0);
   const bestRef = useRef<Best | null>(null);
   const phaseRef = useRef<Phase>('start');
   const feedbackRef = useRef<Feedback>(null);
+  const currentWordRef = useRef<ArtikelWord | null>(null);
   bestRef.current = best;
   phaseRef.current = phase;
   feedbackRef.current = feedback;
@@ -99,8 +113,8 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const timerAnim = useRef(new Animated.Value(1)).current;
 
-  // wordIdx changes only AFTER feedback ends — so currentWord is always the answered word during feedback
   const currentWord = words[wordIdx % words.length];
+  currentWordRef.current = currentWord ?? null;
 
   useEffect(() => {
     AsyncStorage.getItem(getBestKey(level)).then(v => setBest(v ? JSON.parse(v) : null));
@@ -114,31 +128,21 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     };
   }, []);
 
-  // Timer effect: runs when a new word is active (wordIdx changes) and re-runs after feedback clears
-  // Mirrors WortDorf: useEffect([current, done, feedback])
   useEffect(() => {
     if (phase !== 'playing' || feedback !== null) return;
 
-    // Start animated bar
     timerAnim.setValue(1);
     const anim = Animated.timing(timerAnim, {
-      toValue: 0,
-      duration: TIMER_SECONDS * 1000,
-      useNativeDriver: false,
+      toValue: 0, duration: TIMER_SECONDS * 1000, useNativeDriver: false,
     });
     timerAnimObjRef.current = anim;
     anim.start();
 
-    // Start countdown number
     setTimeLeft(TIMER_SECONDS);
     clearInterval(intervalRef.current!);
     intervalRef.current = setInterval(() => {
       setTimeLeft(t => {
-        if (t <= 1) {
-          clearInterval(intervalRef.current!);
-          handleTimeout();
-          return 0;
-        }
+        if (t <= 1) { clearInterval(intervalRef.current!); handleTimeout(); return 0; }
         return t - 1;
       });
     }, 1000);
@@ -156,6 +160,8 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
 
   function handleTimeout() {
     if (phaseRef.current !== 'playing' || feedbackRef.current !== null) return;
+    const word = currentWordRef.current;
+    if (word) setHistory(prev => [...prev, { word, type: 'timeout' }]);
     stopTimer();
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
@@ -168,7 +174,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     advance(false, 1500);
   }
 
-  // advance: wait `delay` ms, then move to next word or result
   function advance(wasCorrect: boolean, delay: number) {
     clearTimeout(advanceTimer.current!);
     advanceTimer.current = setTimeout(async () => {
@@ -176,7 +181,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       const finalStreak = streakRef.current;
 
       if (!wasCorrect) {
-        // End game
         const cur = bestRef.current;
         const isNew = finalStreak > 0 &&
           (!cur || finalStreak > cur.streak || (finalStreak === cur.streak && elapsed < cur.seconds));
@@ -195,7 +199,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         phaseRef.current = 'result';
         setPhase('result');
       } else {
-        // Next word — increment wordIdx AFTER feedback clears
         setFeedback(null);
         setChosen(null);
         setWordIdx(i => i + 1);
@@ -214,6 +217,8 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     setFeedback(null);
     setChosen(null);
     setTimeLeft(TIMER_SECONDS);
+    setHistory([]);
+    setReportedIds(new Set());
     startTimeRef.current = Date.now();
     phaseRef.current = 'playing';
     setPhase('playing');
@@ -223,9 +228,10 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     if (phaseRef.current !== 'playing' || feedbackRef.current !== null) return;
     stopTimer();
     setChosen(tapped);
-    const correct = currentWord.article;  // accurate: wordIdx not yet incremented
+    const correct = currentWord.article;
 
     if (tapped === correct) {
+      setHistory(prev => [...prev, { word: currentWord, type: 'correct' }]);
       Animated.sequence([
         Animated.spring(wordScale, { toValue: 1.12, useNativeDriver: true, speed: 60, bounciness: 8 }),
         Animated.spring(wordScale, { toValue: 1, useNativeDriver: true, speed: 25, bounciness: 0 }),
@@ -233,8 +239,9 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       streakRef.current += 1;
       setStreak(streakRef.current);
       setFeedback('correct');
-      advance(true, 900);   // move to next word after 900ms
+      advance(true, 900);
     } else {
+      setHistory(prev => [...prev, { word: currentWord, type: 'wrong' }]);
       Animated.sequence([
         Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: -14, duration: 50, useNativeDriver: true }),
@@ -242,7 +249,38 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
       ]).start();
       setFeedback('wrong');
-      advance(false, 1500);  // end game after 1500ms
+      advance(false, 1500);
+    }
+  }
+
+  function openReport(word: ArtikelWord) {
+    setReportWord(word);
+    setReportNote('');
+    setReportSent(false);
+    setReportVisible(true);
+  }
+
+  async function submitReport() {
+    if (!reportWord || reportNote.trim().length === 0 || reportSending) return;
+    setReportSending(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        game: 'artikel',
+        level,
+        article: reportWord.article,
+        noun: reportWord.noun,
+        tr: reportWord.tr,
+        wordId: reportWord.id,
+        note: reportNote.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setReportedIds(prev => new Set(prev).add(reportWord.id));
+      setReportSent(true);
+      setTimeout(() => setReportVisible(false), 1400);
+    } catch {
+      // silent fail
+    } finally {
+      setReportSending(false);
     }
   }
 
@@ -335,30 +373,137 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
           <View style={{ width: 44 }} />
         </View>
 
-        <View style={styles.resultBody}>
-          <Text style={styles.resultIcon}>{resultStreak >= 5 ? '🎯' : '⭐'}</Text>
-          <Text style={styles.resultStreakNum}>{resultStreak}</Text>
-          <Text style={styles.resultStreakLabel}>kelime</Text>
-          {resultStreak > 0 && (
-            <Text style={styles.resultTime}>{resultSeconds} saniyede</Text>
-          )}
-
-          {isNewRecord ? (
-            <View style={styles.newRecordBadge}>
-              <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
+        <ScrollView contentContainerStyle={styles.resultScroll} showsVerticalScrollIndicator={false}>
+          {/* Stats card at top */}
+          <View style={styles.resultStatsCard}>
+            <Text style={styles.resultIcon}>{resultStreak >= 5 ? '🎯' : '⭐'}</Text>
+            <View style={styles.resultStatsRow}>
+              <Text style={styles.resultStreakNum}>{resultStreak}</Text>
+              <Text style={styles.resultStreakLabel}>kelime</Text>
             </View>
-          ) : best && best.streak > 0 ? (
-            <View style={styles.prevRecord}>
-              <Text style={styles.prevRecordText}>
-                Rekor: {best.streak} kelime · {best.seconds}sn
-              </Text>
-            </View>
-          ) : null}
+            {resultStreak > 0 && (
+              <Text style={styles.resultTime}>{resultSeconds} saniyede</Text>
+            )}
+            {isNewRecord ? (
+              <View style={styles.newRecordBadge}>
+                <Text style={styles.newRecordText}>🏆 Yeni Rekor!</Text>
+              </View>
+            ) : best && best.streak > 0 ? (
+              <View style={styles.prevRecord}>
+                <Text style={styles.prevRecordText}>
+                  Rekor: {best.streak} kelime · {best.seconds}sn
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
-          <TouchableOpacity style={styles.retryBtn} onPress={startGame} activeOpacity={0.85}>
-            <Text style={styles.retryBtnText}>Tekrar Dene →</Text>
+          <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.85}>
+            <Text style={styles.startBtnText}>Tekrar Dene →</Text>
           </TouchableOpacity>
-        </View>
+
+          {/* History */}
+          {history.length > 0 && (
+            <View style={styles.historySection}>
+              <Text style={styles.historyLabel}>CEVAPLANAN KELİMELER</Text>
+              {history.map((item, idx) => {
+                const isReported = reportedIds.has(item.word.id);
+                const statusColor =
+                  item.type === 'correct' ? C.success :
+                  item.type === 'wrong' ? C.danger : C.timeout;
+                const statusIcon =
+                  item.type === 'correct' ? '✓' :
+                  item.type === 'wrong' ? '✗' : '⏱';
+                const artColor = ART_COLOR[item.word.article];
+                return (
+                  <View
+                    key={item.word.id + idx}
+                    style={[styles.historyRow, { borderLeftColor: statusColor }]}
+                  >
+                    <Text style={[styles.historyStatusIcon, { color: statusColor }]}>
+                      {statusIcon}
+                    </Text>
+                    <View style={styles.historyWordInfo}>
+                      <View style={styles.historyNounRow}>
+                        <Text style={[styles.historyArticle, { color: artColor }]}>
+                          {item.word.article}
+                        </Text>
+                        <Text style={styles.historyNoun}>{item.word.noun}</Text>
+                      </View>
+                      <Text style={styles.historyTr}>{item.word.tr}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.reportIconBtn}
+                      onPress={() => openReport(item.word)}
+                      disabled={isReported}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={[styles.reportIconText, isReported && styles.reportIconTextReported]}>
+                        ⚑
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Report modal */}
+        <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => !reportSending && setReportVisible(false)}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <TouchableOpacity
+              style={styles.reportOverlay}
+              activeOpacity={1}
+              onPress={() => !reportSending && setReportVisible(false)}
+            />
+            <View style={styles.reportSheet}>
+              <View style={styles.reportHandle} />
+              {reportSent ? (
+                <View style={styles.reportSuccessBox}>
+                  <Text style={styles.reportSuccessIcon}>✓</Text>
+                  <Text style={styles.reportSuccessText}>Raporun iletildi, teşekkürler!</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.reportTitle}>Hata Bildir</Text>
+                  {reportWord && (
+                    <View style={styles.reportWordBox}>
+                      <View style={styles.historyNounRow}>
+                        <Text style={[styles.historyArticle, { color: ART_COLOR[reportWord.article], fontSize: 16 }]}>
+                          {reportWord.article}
+                        </Text>
+                        <Text style={[styles.historyNoun, { fontSize: 16 }]}>{reportWord.noun}</Text>
+                      </View>
+                      <Text style={styles.reportWordTr}>{reportWord.tr}</Text>
+                    </View>
+                  )}
+                  <TextInput
+                    style={styles.reportInput}
+                    placeholder="Hatayı açıkla (zorunlu)…"
+                    placeholderTextColor={C.textFaint}
+                    value={reportNote}
+                    onChangeText={setReportNote}
+                    multiline
+                    maxLength={300}
+                    autoFocus
+                  />
+                  <View style={styles.reportActions}>
+                    <TouchableOpacity style={styles.reportCancelBtn} onPress={() => setReportVisible(false)}>
+                      <Text style={styles.reportCancelText}>Vazgeç</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.reportSubmitBtn, (reportSending || reportNote.trim().length === 0) && styles.reportSubmitBtnDisabled]}
+                      onPress={submitReport}
+                      disabled={reportSending || reportNote.trim().length === 0}
+                    >
+                      <Text style={styles.reportSubmitText}>{reportSending ? 'Gönderiliyor…' : 'Gönder'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -366,14 +511,12 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   // ── PLAYING ────────────────────────────────────────────────────────────────
   const correct = currentWord.article;
 
-  // Word card tint
   let cardBg = C.surface;
   let cardBorder = C.border;
   if (feedback === 'correct') { cardBg = C.successBg; cardBorder = C.success; }
   else if (feedback === 'wrong') { cardBg = C.dangerBg; cardBorder = C.danger; }
   else if (feedback === 'timeout') { cardBg = C.timeoutBg; cardBorder = C.timeout; }
 
-  // Feedback text line — mirrors WortDorf
   let feedbackLine: string | null = null;
   if (feedback === 'correct') feedbackLine = `✓ ${correct.toUpperCase()} ${currentWord.noun}`;
   else if (feedback === 'wrong') feedbackLine = `✗ Doğrusu: ${correct.toUpperCase()}`;
@@ -385,11 +528,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
 
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => {
-            clearTimeout(advanceTimer.current!);
-            stopTimer();
-            navigation.goBack();
-          }}
+          onPress={() => { clearTimeout(advanceTimer.current!); stopTimer(); navigation.goBack(); }}
           style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
@@ -402,7 +541,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         </View>
       </View>
 
-      {/* Timer bar + countdown number */}
       <View style={styles.timerRow}>
         <View style={styles.timerTrack}>
           <Animated.View style={[styles.timerBar, {
@@ -414,7 +552,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       </View>
 
       <View style={styles.gameBody}>
-        {/* Notch row */}
         <View style={styles.notchRow}>
           {Array.from({ length: NOTCH_COUNT }, (_, i) => (
             <View key={i} style={[styles.notch, i < notchFilled && styles.notchFilled]} />
@@ -426,16 +563,13 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
           )}
         </View>
 
-        {/* Streak counter */}
         <View style={styles.streakDisplay}>
           <Text style={styles.streakNum}>{streak}</Text>
           <Text style={styles.streakLabel}>Seri</Text>
         </View>
 
-        {/* Word card — stays on current word during feedback */}
         <Animated.View style={[styles.wordCard, {
-          backgroundColor: cardBg,
-          borderColor: cardBorder,
+          backgroundColor: cardBg, borderColor: cardBorder,
           transform: [{ scale: wordScale }, { translateX: shakeAnim }],
         }]}>
           <Text style={styles.noun}>{currentWord.noun}</Text>
@@ -449,7 +583,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
           )}
         </Animated.View>
 
-        {/* DER / DIE / DAS — WortDorf pattern: correct=green, others=dim */}
         <View style={styles.buttonRow}>
           {(['der', 'die', 'das'] as Article[]).map(art => {
             let btnStyle: object = { borderColor: ART_COLOR[art], backgroundColor: `${ART_COLOR[art]}1A` };
@@ -458,11 +591,9 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
 
             if (feedback !== null) {
               if (art === correct) {
-                // Always highlight the correct article green
                 btnStyle = { borderColor: C.success, backgroundColor: 'rgba(26,158,110,0.14)' };
                 textColor = C.success;
               } else {
-                // Dim all wrong options
                 btnStyle = { borderColor: C.border, backgroundColor: C.bg };
                 textColor = C.textFaint;
                 opacity = 0.4;
@@ -510,7 +641,6 @@ const styles = StyleSheet.create({
   },
   streakPillText: { fontSize: 14, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
 
-  // Timer
   timerRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 6,
@@ -520,12 +650,10 @@ const styles = StyleSheet.create({
   timerBar: { height: 8, borderRadius: 4 },
   timerNum: { fontSize: 13, fontWeight: '700', color: C.textDim, minWidth: 24, textAlign: 'right' },
 
-  // ── Start ──────────────────────────────────────────────────────────────────
   startBody: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24, gap: 14 },
   startIcon: { fontSize: 52 },
   startTitle: { fontSize: 24, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
   startSub: { fontSize: 13, color: C.textDim, textAlign: 'center', lineHeight: 19 },
-
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: C.textFaint,
     letterSpacing: 1.2, alignSelf: 'flex-start', marginBottom: -6,
@@ -539,7 +667,6 @@ const styles = StyleSheet.create({
   levelBtnText: { fontSize: 15, fontWeight: '700', color: C.textDim },
   levelBtnTextActive: { color: C.primary, fontWeight: '800' as const },
   levelBtnSoon: { fontSize: 9, color: C.textFaint, fontWeight: '600', marginTop: 2 },
-
   bestCard: {
     width: '100%', backgroundColor: C.warningBg, borderRadius: 18,
     padding: 22, alignItems: 'center', gap: 6,
@@ -561,12 +688,10 @@ const styles = StyleSheet.create({
   },
   startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
 
-  // ── Game ───────────────────────────────────────────────────────────────────
   gameBody: {
     flex: 1, alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40,
   },
-
   notchRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   notch: {
     width: 22, height: 8, borderRadius: 4,
@@ -583,11 +708,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
   },
   lapBadgeText: { fontSize: 11, fontWeight: '800', color: C.warning },
-
   streakDisplay: { alignItems: 'center', gap: 2 },
   streakNum: { fontSize: 56, fontWeight: '900', color: C.text, letterSpacing: -2 },
   streakLabel: { fontSize: 13, fontWeight: '600', color: C.textFaint, letterSpacing: 1.5 },
-
   wordCard: {
     width: '100%', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 28,
@@ -597,7 +720,6 @@ const styles = StyleSheet.create({
   },
   noun: { fontSize: 40, fontWeight: '800', color: C.text, textAlign: 'center', letterSpacing: 0.1 },
   feedbackLine: { fontSize: 17, fontWeight: '800', letterSpacing: 0.4, textAlign: 'center' },
-
   buttonRow: { flexDirection: 'row', gap: 10, width: '100%' },
   artBtn: {
     flex: 1, borderWidth: 2, borderRadius: 18,
@@ -607,29 +729,107 @@ const styles = StyleSheet.create({
   },
   artBtnText: { fontSize: 17, fontWeight: '900', letterSpacing: 1 },
 
-  // ── Result ─────────────────────────────────────────────────────────────────
-  resultBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 14 },
-  resultIcon: { fontSize: 68, marginBottom: 4 },
-  resultStreakNum: { fontSize: 72, fontWeight: '900', color: C.text, letterSpacing: -2 },
-  resultStreakLabel: { fontSize: 18, fontWeight: '700', color: C.textDim, marginTop: -12 },
-  resultTime: { fontSize: 15, color: C.textFaint, fontWeight: '500' },
+  // Result
+  resultScroll: {
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, gap: 16, flexGrow: 1,
+  },
+  resultStatsCard: {
+    backgroundColor: 'rgba(236,72,153,0.08)', borderRadius: 20, padding: 24,
+    alignItems: 'center', gap: 6,
+    borderWidth: 1, borderColor: 'rgba(236,72,153,0.25)',
+    borderLeftWidth: 4, borderLeftColor: '#EC4899',
+    shadowColor: '#EC4899', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+  },
+  resultIcon: { fontSize: 52, marginBottom: 4 },
+  resultStatsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  resultStreakNum: { fontSize: 64, fontWeight: '900', color: C.text, letterSpacing: -2, lineHeight: 70 },
+  resultStreakLabel: { fontSize: 18, fontWeight: '700', color: C.textDim, marginBottom: 10 },
+  resultTime: { fontSize: 14, color: C.textFaint, fontWeight: '500' },
   newRecordBadge: {
     backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 14,
-    paddingHorizontal: 22, paddingVertical: 11,
+    paddingHorizontal: 22, paddingVertical: 10, marginTop: 4,
     borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.3)',
   },
-  newRecordText: { fontSize: 16, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
+  newRecordText: { fontSize: 15, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
   prevRecord: {
     backgroundColor: 'rgba(236,72,153,0.07)', borderRadius: 10,
-    paddingHorizontal: 18, paddingVertical: 9,
+    paddingHorizontal: 18, paddingVertical: 8, marginTop: 4,
     borderWidth: 1, borderColor: C.border,
   },
   prevRecordText: { fontSize: 13, color: C.textDim, fontWeight: '500' },
-  retryBtn: {
-    width: '100%', backgroundColor: C.primary, borderRadius: 16,
-    paddingVertical: 16, alignItems: 'center', marginTop: 8,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
+
+  // History
+  historySection: { gap: 8 },
+  historyLabel: {
+    fontSize: 10, fontWeight: '700', color: C.textFaint,
+    letterSpacing: 2, marginBottom: 2,
   },
-  retryBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
+  historyRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surface, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: C.border, borderLeftWidth: 4,
+  },
+  historyStatusIcon: { fontSize: 16, fontWeight: '800', width: 20, textAlign: 'center' },
+  historyWordInfo: { flex: 1, gap: 2 },
+  historyNounRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  historyArticle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
+  historyNoun: { fontSize: 14, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  historyTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
+  reportIconBtn: {
+    width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(220,38,38,0.07)', borderWidth: 1, borderColor: 'rgba(220,38,38,0.2)',
+  },
+  reportIconText: { fontSize: 16, color: C.danger },
+  reportIconTextReported: { color: C.textFaint },
+
+  // Report modal
+  reportOverlay: { flex: 1, backgroundColor: 'rgba(10,20,60,0.45)' },
+  reportSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 32,
+    borderTopWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+  },
+  reportHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
+  },
+  reportTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: 0.2, marginBottom: 12 },
+  reportWordBox: {
+    backgroundColor: 'rgba(236,72,153,0.07)', borderRadius: 12, padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(236,72,153,0.2)', gap: 3,
+  },
+  reportWordTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
+  reportInput: {
+    backgroundColor: '#F8F9FE', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, fontWeight: '500',
+    borderWidth: 1.5, borderColor: C.borderBright,
+    minHeight: 80, textAlignVertical: 'top', marginBottom: 16,
+  },
+  reportActions: { flexDirection: 'row', gap: 10 },
+  reportCancelBtn: {
+    flex: 1, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    backgroundColor: C.surface,
+  },
+  reportCancelText: { fontSize: 14, fontWeight: '700', color: C.textDim },
+  reportSubmitBtn: {
+    flex: 2, backgroundColor: C.danger,
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    shadowColor: C.danger, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+  },
+  reportSubmitBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0 },
+  reportSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  reportSuccessBox: { alignItems: 'center', paddingVertical: 20, gap: 12 },
+  reportSuccessIcon: {
+    fontSize: 38, color: '#1A9E6E',
+    backgroundColor: 'rgba(26,158,110,0.12)', borderRadius: 28,
+    width: 56, height: 56, textAlign: 'center', lineHeight: 56, overflow: 'hidden',
+  },
+  reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
 });

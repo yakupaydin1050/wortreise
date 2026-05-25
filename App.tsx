@@ -95,6 +95,14 @@ function PersonIcon({ color }: { color: string }) {
   );
 }
 
+function TabBarDivider() {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'flex-end' }}>
+      <View style={{ height: 1.5, backgroundColor: '#B8C4E8' }} />
+    </View>
+  );
+}
+
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -102,12 +110,15 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: '#3B5BDB',
         tabBarInactiveTintColor: '#8896B8',
+        tabBarBackground: () => <TabBarDivider />,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#B8C4E8',
           borderTopWidth: 1.5,
           elevation: 4,
-          paddingBottom: 14,
+        },
+        tabBarItemStyle: {
+          justifyContent: 'flex-start',
           paddingTop: 10,
         },
         tabBarLabelStyle: {
