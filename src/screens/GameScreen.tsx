@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
 import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, UserProfile } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
 import GridBackground from '../components/GridBackground';
@@ -87,7 +89,9 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goalJustMet, setGoalJustMet] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
   const hasRecorded = useRef(false);
+  const shareRef = useRef<View>(null);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -205,6 +209,30 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     }
   }, [filledCount, total, performEvaluate]);
 
+  function buildFullSentence(germanWithBlank: string, word: string): string {
+    const parts = germanWithBlank.split('___');
+    if (parts.length < 2) return germanWithBlank;
+    const displayWord = parts[0] === '' ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+    return parts[0] + displayWord + (parts[1] ?? '');
+  }
+
+  async function captureAndShare() {
+    try {
+      const uri = await captureRef(shareRef, { format: 'png', quality: 0.95 });
+      setShareVisible(false);
+      await new Promise(r => setTimeout(r, 300));
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Wortreise Kartını Paylaş' });
+      } else {
+        Alert.alert('Paylaşım Mevcut Değil', 'Bu cihazda paylaşım desteklenmiyor.');
+      }
+    } catch {
+      setShareVisible(false);
+      Alert.alert('Hata', 'Paylaşım sırasında bir sorun oluştu.');
+    }
+  }
+
   const handleRestart = useCallback(() => {
     // Timer ran out and user skips results view — still record words
     if (timedOut) {
@@ -317,9 +345,14 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
             </>
           )}
           {phase === 'results' && (
-            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleRestart}>
-              <Text style={[styles.actionBtnText, styles.actionBtnTextPrimary]}>Yeni Tur →</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)}>
+                <Text style={styles.actionBtnText}>📤 Paylaş</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleRestart}>
+                <Text style={[styles.actionBtnText, styles.actionBtnTextPrimary]}>Yeni Tur →</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>
@@ -394,6 +427,59 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
           )}
         </View>
       )}
+
+      {/* Share modal */}
+      <Modal
+        visible={shareVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareVisible(false)}
+      >
+        <View style={styles.shareOverlay}>
+          <View style={styles.shareModalWrap}>
+            <View ref={shareRef} collapsable={false} style={styles.shareCard}>
+              <View style={styles.shareCardHeader}>
+                <Text style={styles.shareCardFlag}>🇩🇪</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.shareCardAppName}>Wortreise</Text>
+                  <Text style={styles.shareCardTheme}>{card.theme}</Text>
+                </View>
+                <View style={styles.shareScoreBadge}>
+                  <Text style={styles.shareScoreBadgeText}>{solvedCount}/{total}</Text>
+                </View>
+              </View>
+              <View style={styles.shareCardDivider} />
+              {card.sentences.map((sentence, i) => {
+                const slot = slots[sentence.id];
+                const correct = slot.isCorrect === true;
+                const usedWord = slot.filledWord ?? sentence.targetWord;
+                const fullSentence = buildFullSentence(sentence.germanWithBlank, usedWord);
+                return (
+                  <View key={sentence.id} style={[styles.shareSentRow, { borderLeftColor: correct ? '#1A9E6E' : '#DC2626' }]}>
+                    <Text style={[styles.shareSentMark, { color: correct ? '#1A9E6E' : '#DC2626' }]}>
+                      {correct ? '✓' : '✗'}
+                    </Text>
+                    <Text style={[styles.shareSentText, { color: correct ? '#1A2340' : '#DC2626' }]} numberOfLines={2}>
+                      {fullSentence}
+                    </Text>
+                  </View>
+                );
+              })}
+              <View style={styles.shareCardDivider} />
+              <Text style={styles.shareCardTagline}>Wortreise ile Almanca öğren! 🇩🇪</Text>
+            </View>
+            <View style={styles.shareActionRow}>
+              <TouchableOpacity style={styles.shareCancelBtn} onPress={() => setShareVisible(false)}>
+                <Text style={styles.shareCancelBtnText}>Kapat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareConfirmBtn} onPress={captureAndShare}>
+                <Text style={styles.shareConfirmBtnText}>Paylaş 📤</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -539,4 +625,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
   },
   neuBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
+
+  shareOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    justifyContent: 'center', alignItems: 'center', padding: 20,
+  },
+  shareModalWrap: { width: '100%', maxWidth: 380, gap: 14 },
+  shareCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, gap: 10,
+    borderWidth: 1, borderColor: '#DDE3F5',
+    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 8,
+  },
+  shareCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shareCardFlag: { fontSize: 26 },
+  shareCardAppName: { fontSize: 15, fontWeight: '800', color: '#1A2340', letterSpacing: 0.2 },
+  shareCardTheme: { fontSize: 11, fontWeight: '600', color: '#8896B8', letterSpacing: 0.5, marginTop: 1 },
+  shareScoreBadge: {
+    backgroundColor: '#EEF1FF', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#DDE3F5',
+  },
+  shareScoreBadgeText: { fontSize: 15, fontWeight: '800', color: '#3B5BDB' },
+  shareCardDivider: { height: 1, backgroundColor: '#EEF1FF' },
+  shareSentRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    paddingLeft: 8, borderLeftWidth: 3,
+  },
+  shareSentMark: { fontSize: 13, fontWeight: '700', lineHeight: 20, width: 16 },
+  shareSentText: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 19 },
+  shareCardTagline: {
+    fontSize: 12, color: '#8896B8', fontWeight: '500',
+    textAlign: 'center', letterSpacing: 0.2,
+  },
+  shareActionRow: { flexDirection: 'row', gap: 10 },
+  shareCancelBtn: {
+    flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#DDE3F5', backgroundColor: '#FFFFFF',
+  },
+  shareCancelBtnText: { fontSize: 14, fontWeight: '700', color: '#4E5C80' },
+  shareConfirmBtn: {
+    flex: 2, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    backgroundColor: '#3B5BDB',
+    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  shareConfirmBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
 });
