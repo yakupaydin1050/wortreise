@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
 import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, UserProfile } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
 import GridBackground from '../components/GridBackground';
@@ -87,6 +89,10 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goalJustMet, setGoalJustMet] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportSentenceId, setReportSentenceId] = useState<string | null>(null);
+  const [reportNote, setReportNote] = useState('');
+  const [reportSending, setReportSending] = useState(false);
   const hasRecorded = useRef(false);
 
   useEffect(() => {
@@ -204,6 +210,38 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
       performEvaluate(true);
     }
   }, [filledCount, total, performEvaluate]);
+
+  function openReport(sentenceId: string) {
+    setReportSentenceId(sentenceId);
+    setReportNote('');
+    setReportVisible(true);
+  }
+
+  async function submitReport() {
+    if (!reportSentenceId) return;
+    const sentence = card.sentences.find(s => s.id === reportSentenceId);
+    if (!sentence) return;
+    setReportSending(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        game: 'boşluk_doldurma',
+        level,
+        theme: card.theme,
+        sentence: sentence.germanWithBlank,
+        targetWord: sentence.targetWord,
+        translationTR: sentence.translationTR ?? '',
+        wordBankId: sentence.wordBankId ?? '',
+        note: reportNote.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setReportVisible(false);
+      Alert.alert('Teşekkürler!', 'Hata bildirimin alındı, inceleyeceğiz.');
+    } catch {
+      Alert.alert('Hata', 'Gönderim sırasında sorun oluştu, tekrar dene.');
+    } finally {
+      setReportSending(false);
+    }
+  }
 
   const handleRestart = useCallback(() => {
     // Timer ran out and user skips results view — still record words
@@ -331,21 +369,31 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         showsVerticalScrollIndicator={false}
       >
         {card.sentences.map((sentence, index) => (
-          <SentenceRow
-            key={`${card.id}-${sentence.id}`}
-            number={index + 1}
-            sentence={sentence}
-            selectedWord={selectedWord?.word ?? null}
-            onBlankPress={handleBlankPress}
-            filledWord={slots[sentence.id].filledWord}
-            isCorrect={slots[sentence.id].isCorrect}
-            showControls={phase === 'results'}
-            correctionWord={
-              phase === 'results' && slots[sentence.id].isCorrect !== true
-                ? sentence.targetWord
-                : undefined
-            }
-          />
+          <View key={`${card.id}-${sentence.id}`}>
+            <SentenceRow
+              number={index + 1}
+              sentence={sentence}
+              selectedWord={selectedWord?.word ?? null}
+              onBlankPress={handleBlankPress}
+              filledWord={slots[sentence.id].filledWord}
+              isCorrect={slots[sentence.id].isCorrect}
+              showControls={phase === 'results'}
+              correctionWord={
+                phase === 'results' && slots[sentence.id].isCorrect !== true
+                  ? sentence.targetWord
+                  : undefined
+              }
+            />
+            {phase === 'results' && (
+              <TouchableOpacity
+                style={styles.reportBtn}
+                onPress={() => openReport(sentence.id)}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={styles.reportBtnText}>⚑ Hata Bildir</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         ))}
       </ScrollView>
 
@@ -394,6 +442,57 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
           )}
         </View>
       )}
+
+      {/* Report modal */}
+      <Modal
+        visible={reportVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReportVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.reportOverlay}
+          activeOpacity={1}
+          onPress={() => setReportVisible(false)}
+        >
+          <View style={styles.reportSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.reportHandle} />
+            <Text style={styles.reportTitle}>Hata Bildir</Text>
+            <Text style={styles.reportSub}>
+              Bu cümleyle ilgili bir hata veya sorun mu var?
+            </Text>
+            {reportSentenceId && (() => {
+              const s = card.sentences.find(x => x.id === reportSentenceId);
+              return s ? (
+                <View style={styles.reportSentenceBox}>
+                  <Text style={styles.reportSentenceText}>{s.germanWithBlank.replace('___', `[${s.targetWord}]`)}</Text>
+                </View>
+              ) : null;
+            })()}
+            <TextInput
+              style={styles.reportInput}
+              placeholder="Açıklama ekle (isteğe bağlı)"
+              placeholderTextColor={C.textFaint}
+              value={reportNote}
+              onChangeText={setReportNote}
+              multiline
+              maxLength={200}
+            />
+            <View style={styles.reportActions}>
+              <TouchableOpacity style={styles.reportCancelBtn} onPress={() => setReportVisible(false)}>
+                <Text style={styles.reportCancelText}>Vazgeç</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reportSubmitBtn, reportSending && { opacity: 0.6 }]}
+                onPress={submitReport}
+                disabled={reportSending}
+              >
+                <Text style={styles.reportSubmitText}>{reportSending ? 'Gönderiliyor…' : 'Gönder'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -540,4 +639,55 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
   },
   neuBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
+
+  reportBtn: {
+    alignSelf: 'flex-end', marginTop: 4, marginBottom: 2,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  reportBtnText: { fontSize: 11, color: C.textFaint, fontWeight: '500', letterSpacing: 0.2 },
+
+  reportOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
+  },
+  reportSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
+    borderTopWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+    gap: 12,
+  },
+  reportHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginBottom: 4,
+  },
+  reportTitle: { fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
+  reportSub: { fontSize: 13, color: C.textDim, fontWeight: '400', lineHeight: 19 },
+  reportSentenceBox: {
+    backgroundColor: C.surface2, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: C.border,
+  },
+  reportSentenceText: { fontSize: 13, color: C.text, fontWeight: '600', lineHeight: 20 },
+  reportInput: {
+    backgroundColor: C.surface2, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, fontWeight: '400',
+    borderWidth: 1.5, borderColor: C.borderBright,
+    minHeight: 72, textAlignVertical: 'top',
+  },
+  reportActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  reportCancelBtn: {
+    flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  reportCancelText: { fontSize: 14, fontWeight: '700', color: C.textDim },
+  reportSubmitBtn: {
+    flex: 2, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    backgroundColor: C.danger,
+    shadowColor: C.danger, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 3,
+  },
+  reportSubmitText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 });
