@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Share, Linking,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,6 +11,8 @@ import {
   resetStats, resetProgress, resetGameStats,
   UserProfile, AppStats, getCharacter,
 } from '../utils/storage';
+import * as StoreReview from 'expo-store-review';
+import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
 
 const AVATARS = [
   '👨', '👩', '🧑', '👦', '👧', '👴', '👵', '🧔',
@@ -58,6 +61,14 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [editGoal, setEditGoal] = useState(15);
   const [editAvatar, setEditAvatar] = useState('👤');
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
+  const [policyVisible, setPolicyVisible] = useState(false);
+  const [policyType, setPolicyType] = useState<PolicyType>('privacy');
+  const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
+
+  function openPolicy(type: PolicyType) {
+    setPolicyType(type);
+    setPolicyVisible(true);
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -106,6 +117,30 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         },
       ],
     );
+  }
+
+  async function handleReview() {
+    const available = await StoreReview.isAvailableAsync();
+    if (available) {
+      await StoreReview.requestReview();
+    } else {
+      Alert.alert(
+        'Uygulamayı Değerlendir',
+        'Değerlendirme yapmak için uygulama mağazasına yönlendirileceksiniz.',
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          { text: 'Git', onPress: () => Linking.openURL('https://wortreise.app') },
+        ],
+      );
+    }
+  }
+
+  function handleShare() {
+    Share.share({
+      message:
+        'Wortreise\'yi denedin mi? 🇩🇪\n\nAlmanca kelimeler, eşleştirme oyunları ve hafıza kartlarıyla günde birkaç dakikada Almanca öğrenebiliyorsun.\n\nHemen indir, birlikte öğrenelim! 🚀',
+      title: 'Wortreise — Almanca Öğren',
+    });
   }
 
   function handleLogout() {
@@ -260,6 +295,31 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           </View>
         </View>
 
+        {/* App actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>UYGULAMA</Text>
+          <TouchableOpacity style={styles.shareCard} onPress={handleReview} activeOpacity={0.75}>
+            <View style={[styles.shareIconWrap, { backgroundColor: 'rgba(217,119,6,0.10)', borderColor: 'rgba(217,119,6,0.25)' }]}>
+              <Text style={styles.shareIcon}>⭐</Text>
+            </View>
+            <View style={styles.shareTextWrap}>
+              <Text style={[styles.shareTitle, { color: C.warning }]}>Uygulamayı Değerlendir</Text>
+              <Text style={styles.shareSub}>Görüşlerin bizim için değerli</Text>
+            </View>
+            <Text style={[styles.shareChevron, { color: C.warning }]}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shareCard} onPress={handleShare} activeOpacity={0.75}>
+            <View style={styles.shareIconWrap}>
+              <Text style={styles.shareIcon}>📤</Text>
+            </View>
+            <View style={styles.shareTextWrap}>
+              <Text style={styles.shareTitle}>Uygulamayı Tavsiye Et</Text>
+              <Text style={styles.shareSub}>Arkadaşlarına öner, birlikte öğrenin</Text>
+            </View>
+            <Text style={styles.shareChevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Account actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>HESAP</Text>
@@ -279,7 +339,79 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           </TouchableOpacity>
         </View>
 
+        {/* Legal */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>YASAL</Text>
+          <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('privacy')} activeOpacity={0.7}>
+            <View style={styles.legalIconWrap}>
+              <Text style={styles.legalIconEmoji}>🔒</Text>
+            </View>
+            <Text style={styles.legalLabel}>Gizlilik Politikası</Text>
+            <Text style={styles.legalChevron}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('terms')} activeOpacity={0.7}>
+            <View style={styles.legalIconWrap}>
+              <Text style={styles.legalIconEmoji}>📋</Text>
+            </View>
+            <Text style={styles.legalLabel}>Kullanım Koşulları</Text>
+            <Text style={styles.legalChevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footerCard}>
+          <Text style={styles.footerFlag}>🇩🇪</Text>
+          <Text style={styles.footerAppName}>Wortreise</Text>
+          <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
+          <View style={styles.footerDivider} />
+          <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
+          <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
+        </View>
+
       </ScrollView>
+
+      {/* Policy modal */}
+      <Modal
+        visible={policyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPolicyVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setPolicyVisible(false)}>
+          <View style={styles.policyOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.policySheet}>
+                <View style={styles.policyHandle} />
+                <View style={styles.policyLangRow}>
+                  {(['tr', 'de', 'en'] as PolicyLang[]).map((lang, i) => (
+                    <TouchableOpacity
+                      key={lang}
+                      style={[styles.policyLangBtn, policyLang === lang && styles.policyLangBtnActive]}
+                      onPress={() => setPolicyLang(lang)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.policyLangText, policyLang === lang && styles.policyLangTextActive]}>
+                        {lang === 'tr' ? '🇹🇷 TR' : lang === 'de' ? '🇩🇪 DE' : '🇬🇧 EN'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.policyTitle}>{POLICY_CONTENT[policyType][policyLang].title}</Text>
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.policyScroll}>
+                  <Text style={styles.policyBody}>{POLICY_CONTENT[policyType][policyLang].body}</Text>
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.policyCloseBtn}
+                  onPress={() => setPolicyVisible(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.policyCloseBtnText}>Kapat</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* Avatar picker bottom sheet */}
       <Modal
@@ -505,6 +637,30 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 30, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
   statLabel: { fontSize: 12, color: C.textDim, fontWeight: '700', letterSpacing: 0.5 },
 
+  shareCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 18, paddingVertical: 16,
+    borderRadius: 18, borderWidth: 1,
+    backgroundColor: 'rgba(59,91,219,0.07)',
+    borderColor: 'rgba(59,91,219,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 8, elevation: 2,
+  },
+  shareIconWrap: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: C.primaryBg,
+    borderWidth: 1.5, borderColor: 'rgba(59,91,219,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  shareIcon: { fontSize: 20 },
+  shareTextWrap: { flex: 1, gap: 3 },
+  shareTitle: { fontSize: 15, fontWeight: '700', color: C.primary, letterSpacing: 0.1 },
+  shareSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', letterSpacing: 0.1 },
+  shareChevron: { fontSize: 24, fontWeight: '300', color: C.primary, lineHeight: 28, opacity: 0.6 },
+
   actionCard: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 20,
@@ -527,5 +683,78 @@ const styles = StyleSheet.create({
   actionLogoutText: { fontSize: 15, fontWeight: '700', color: C.logoutColor, marginBottom: 4, letterSpacing: 0.1 },
   actionSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', lineHeight: 17, letterSpacing: 0.1 },
   actionChevron: { fontSize: 24, fontWeight: '300', marginLeft: 10, lineHeight: 28, opacity: 0.5 },
+
+  legalCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 18, paddingVertical: 14,
+    borderRadius: 16, borderWidth: 1,
+    backgroundColor: 'rgba(78,92,128,0.07)',
+    borderColor: 'rgba(78,92,128,0.25)',
+    borderLeftWidth: 4, borderLeftColor: C.textDim,
+    shadowColor: C.textDim, shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
+  },
+  legalIconWrap: {
+    width: 38, height: 38, borderRadius: 11,
+    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  legalIconEmoji: { fontSize: 18 },
+  legalLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.textDim, letterSpacing: 0.1 },
+  legalChevron: { fontSize: 22, fontWeight: '300', color: C.textFaint, lineHeight: 26, opacity: 0.7 },
+
+  footerCard: {
+    alignItems: 'center', gap: 4,
+    paddingVertical: 28, paddingHorizontal: 20,
+    borderRadius: 20, borderWidth: 1,
+    backgroundColor: C.primaryBg,
+    borderColor: 'rgba(59,91,219,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+    marginTop: 4,
+  },
+  footerFlag: { fontSize: 28, marginBottom: 4 },
+  footerAppName: { fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: 0.5 },
+  footerVersion: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.5, marginTop: 2 },
+  footerDivider: { width: 32, height: 1, backgroundColor: C.border, marginVertical: 10 },
+  footerCredit: { fontSize: 12, color: C.textDim, fontWeight: '500', letterSpacing: 0.2 },
+  footerAI: { fontSize: 11, color: C.textFaint, fontWeight: '400', letterSpacing: 0.2, marginTop: 2 },
+
+  policyOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
+  },
+  policySheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
+    maxHeight: '88%',
+    borderTopWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+  },
+  policyHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
+  },
+  policyLangRow: { flexDirection: 'row', gap: 8, marginBottom: 16, justifyContent: 'center' },
+  policyLangBtn: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  policyLangBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  policyLangText: { fontSize: 13, fontWeight: '600', color: C.textDim },
+  policyLangTextActive: { color: C.primary },
+  policyTitle: {
+    fontSize: 18, fontWeight: '800', color: C.text,
+    textAlign: 'center', letterSpacing: 0.2, marginBottom: 12,
+  },
+  policyScroll: { flexGrow: 0, marginBottom: 8 },
+  policyBody: { fontSize: 12, color: C.textDim, lineHeight: 18, fontWeight: '400', paddingBottom: 8 },
+  policyCloseBtn: {
+    marginTop: 8, backgroundColor: C.primary,
+    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+  },
+  policyCloseBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 
 });

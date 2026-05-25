@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { recordStreakGame, addCoins } from '../utils/storage';
+import { recordStreakGame, addCoins, shouldPromptReview } from '../utils/storage';
+import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
@@ -176,6 +177,9 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
         }
         recordStreakGame('kelimeAvi', finalStreak, elapsed);
         addCoins(Math.max(1, finalStreak));
+        shouldPromptReview().then(yes => {
+          if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+        });
         setResultStreak(finalStreak);
         setResultSeconds(elapsed);
         setIsNewRecord(isNew);

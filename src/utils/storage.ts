@@ -305,6 +305,30 @@ export async function resetGameStats(): Promise<void> {
   await AsyncStorage.removeItem(GAME_STATS_KEY);
 }
 
+// ─── Review prompt ────────────────────────────────────────────────────────────
+const REVIEW_KEY = '@lernspiel_review_shown';
+const REVIEW_THRESHOLD = 5; // toplam oyun sayısı
+
+export async function shouldPromptReview(): Promise<boolean> {
+  try {
+    const shown = await AsyncStorage.getItem(REVIEW_KEY);
+    if (shown) return false;
+    const gs = await loadGameStats();
+    const allPlayed =
+      gs.artikel.sessions > 0 &&
+      gs.kelimeAvi.sessions > 0 &&
+      gs.eslestirme.sessions > 0 &&
+      gs.hafiza.sessions > 0;
+    if (allPlayed) {
+      await AsyncStorage.setItem(REVIEW_KEY, '1');
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export async function recordStreakGame(
   game: 'artikel' | 'kelimeAvi',
   streak: number,

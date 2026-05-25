@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getRandomWordPairs, WordPair, wordsByLevel } from '../data/generateCard';
-import { recordMatchingGame, addCoins } from '../utils/storage';
+import { recordMatchingGame, addCoins, shouldPromptReview } from '../utils/storage';
+import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import GridBackground from '../components/GridBackground';
 
@@ -152,6 +153,9 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
       const timeUsed = timerMode > 0 ? timerMode - timeLeftRef.current : 0;
       recordMatchingGame(PAIR_COUNT, timeUsed);
       addCoins(PAIR_COUNT * 3);
+      shouldPromptReview().then(yes => {
+        if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+      });
     }
   }, [isComplete]);
 

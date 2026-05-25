@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveProfile } from '../utils/storage';
 import GridBackground from '../components/GridBackground';
+import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
 
 const C = {
   bg: '#F8F9FE',
@@ -37,11 +38,20 @@ const AVATARS = [
   '🦊', '🐼', '🐸', '🦁', '🐯', '🦝', '🐨', '🦦',
 ];
 
+
 export default function OnboardingScreen({ navigation }: { navigation: any }) {
   const [name, setName] = useState('');
   const [goal, setGoal] = useState(15);
   const [avatar, setAvatar] = useState('');
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [policyVisible, setPolicyVisible] = useState(false);
+  const [policyType, setPolicyType] = useState<PolicyType>('privacy');
+  const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
+
+  function openPolicy(type: PolicyType) {
+    setPolicyType(type);
+    setPolicyVisible(true);
+  }
 
   const canContinue = name.trim().length >= 3;
 
@@ -165,6 +175,18 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
           <Text style={styles.footer}>
             Her gün {goal} kart — küçük adımlar, büyük sonuçlar
           </Text>
+
+          <Text style={styles.policyNotice}>
+            {'Başla\'ya basarak '}
+            <Text style={styles.policyLink} onPress={() => openPolicy('terms')}>
+              Kullanım Koşulları
+            </Text>
+            {'\'nı ve '}
+            <Text style={styles.policyLink} onPress={() => openPolicy('privacy')}>
+              Gizlilik Politikası
+            </Text>
+            {'\'nı kabul etmiş olursunuz.'}
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -206,6 +228,62 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
                 <Text style={styles.clearBtnText}>Seçimi temizle</Text>
               </TouchableOpacity>
             ) : null}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      {/* Policy modal */}
+      <Modal
+        visible={policyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPolicyVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setPolicyVisible(false)}
+        >
+          <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
+
+            {/* Lang toggle */}
+            <View style={styles.policyLangRow}>
+              <TouchableOpacity
+                style={[styles.policyLangBtn, policyLang === 'tr' && styles.policyLangBtnActive]}
+                onPress={() => setPolicyLang('tr')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.policyLangText, policyLang === 'tr' && styles.policyLangTextActive]}>🇹🇷 TR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.policyLangBtn, policyLang === 'de' && styles.policyLangBtnActive]}
+                onPress={() => setPolicyLang('de')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.policyLangText, policyLang === 'de' && styles.policyLangTextActive]}>🇩🇪 DE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.policyLangBtn, policyLang === 'en' && styles.policyLangBtnActive]}
+                onPress={() => setPolicyLang('en')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.policyLangText, policyLang === 'en' && styles.policyLangTextActive]}>🇬🇧 EN</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sheetTitle}>{POLICY_CONTENT[policyType][policyLang].title}</Text>
+
+            <View>
+              <Text style={styles.policyBody}>{POLICY_CONTENT[policyType][policyLang].body}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.policyCloseBtn}
+              onPress={() => setPolicyVisible(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.policyCloseBtnText}>Kapat</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -312,6 +390,36 @@ const styles = StyleSheet.create({
   footer: {
     textAlign: 'center', fontSize: 13, color: C.textFaint, fontWeight: '500', lineHeight: 20, letterSpacing: 0.2,
   },
+  policyNotice: {
+    textAlign: 'center', fontSize: 11, color: C.textFaint,
+    fontWeight: '400', lineHeight: 17, letterSpacing: 0.1,
+    paddingHorizontal: 12,
+  },
+  policyLink: {
+    color: C.primary, fontWeight: '600', textDecorationLine: 'underline',
+  },
+
+  policyLangRow: {
+    flexDirection: 'row', gap: 8, marginBottom: 16, justifyContent: 'center',
+  },
+  policyLangBtn: {
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  policyLangBtnActive: {
+    borderColor: C.primary, backgroundColor: C.primaryBg,
+  },
+  policyLangText: { fontSize: 13, fontWeight: '600', color: C.textDim },
+  policyLangTextActive: { color: C.primary },
+  policyBody: {
+    fontSize: 12, color: C.textDim, lineHeight: 18,
+    fontWeight: '400', paddingBottom: 16,
+  },
+  policyCloseBtn: {
+    marginTop: 12, backgroundColor: C.primary,
+    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+  },
+  policyCloseBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 
   // Modal bottom sheet
   modalOverlay: {
@@ -321,7 +429,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
-    maxHeight: '72%',
+    maxHeight: '88%',
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
     borderTopWidth: 1, borderColor: C.border,

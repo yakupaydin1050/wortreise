@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { recordHafizaGame } from '../utils/storage';
+import { recordHafizaGame, shouldPromptReview } from '../utils/storage';
+import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
@@ -305,6 +306,9 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     }
     setIsNewRecord(isNew);
     recordHafizaGame(completedTime, moves);
+    shouldPromptReview().then(yes => {
+      if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+    });
   }, [completedTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGame = useCallback(() => {

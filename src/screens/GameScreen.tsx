@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
-import { loadProfile, recordCardCompleted, recordWordResults, UserProfile } from '../utils/storage';
+import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, UserProfile } from '../utils/storage';
+import * as StoreReview from 'expo-store-review';
 import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
 import GridBackground from '../components/GridBackground';
@@ -173,6 +174,9 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
       hasRecorded.current = true;
       recordCardCompleted(correctCount, profile.dailyGoal).then(({ goalJustMet: met }) => {
         setGoalJustMet(met);
+        shouldPromptReview().then(yes => {
+          if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+        });
       });
     }
   }, [card.sentences, slots, profile]);
