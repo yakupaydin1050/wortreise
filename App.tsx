@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,6 +6,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadStats } from './src/utils/storage';
+import { setupNotificationHandler, setupAndroidChannel, refreshStreakNotification } from './src/utils/notifications';
+import { loadAndApplyHapticsPreference } from './src/utils/haptics';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
 import MatchingScreen from './src/screens/MatchingScreen';
@@ -168,8 +172,14 @@ export default function App() {
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
+    setupNotificationHandler();
+    setupAndroidChannel();
+    loadAndApplyHapticsPreference();
     AsyncStorage.getItem('@lernspiel_profile').then(val => {
       setHasProfile(val !== null);
+      if (val !== null) {
+        loadStats().then(stats => refreshStreakNotification(stats));
+      }
     });
   }, []);
 
@@ -182,7 +192,9 @@ export default function App() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
+    <ErrorBoundary>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
@@ -203,6 +215,8 @@ export default function App() {
         <Stack.Screen name="Dialog" component={DialogScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+    </ErrorBoundary>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

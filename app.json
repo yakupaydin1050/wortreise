@@ -24,7 +24,18 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3B5BDB",
+          "defaultChannel": "default"
+        }
+      ]
+    ]
   }
 }

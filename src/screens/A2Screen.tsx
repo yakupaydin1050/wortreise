@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  loadProfile, loadStats, loadLevelProgress,
+  loadProfile, loadStats, loadLevelProgress, loadFavorites,
   UserProfile, AppStats, LevelProgress,
 } from '../utils/storage';
 import { wordBankA2 } from '../data/wordBankA2';
 import GridBackground from '../components/GridBackground';
+import WordListModal from '../components/WordListModal';
 
 const TOTAL_A2_WORD_COUNT = wordBankA2.length;
 
@@ -30,16 +31,19 @@ const DURATIONS = [
 
 export default function A2Screen({ navigation }: { navigation: any }) {
   const [selectedDuration, setSelectedDuration] = useState(60);
+  const [wordListMode, setWordListMode] = useState<'all' | 'favorites' | null>(null);
+  const [favCount, setFavCount] = useState(0);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<AppStats | null>(null);
   const [progress, setProgress] = useState<LevelProgress | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      Promise.all([loadProfile(), loadStats(), loadLevelProgress('A2')]).then(([p, s, pr]) => {
+      Promise.all([loadProfile(), loadStats(), loadLevelProgress('A2'), loadFavorites()]).then(([p, s, pr, favs]) => {
         setProfile(p);
         setStats(s);
         setProgress(pr);
+        setFavCount(favs['A2'].length);
       });
     }, []),
   );
@@ -70,75 +74,6 @@ export default function A2Screen({ navigation }: { navigation: any }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-        {/* Daily progress — global across all levels */}
-        {profile && stats && (
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.sectionLabel}>BUGÜN İLERLEME</Text>
-              {stats.streak > 0 && (
-                <View style={styles.streakBadge}>
-                  <Text style={styles.streakBadgeText}>🔥 {stats.streak} gün</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.progressMetrics}>
-              <View style={styles.progressMetric}>
-                <Text style={styles.progressMetricNum}>{stats.todayCards}</Text>
-                <Text style={styles.progressMetricLabel}>Kart Açıldı</Text>
-              </View>
-              <View style={styles.progressMetricSep} />
-              <View style={styles.progressMetric}>
-                <Text style={styles.progressMetricNum}>{profile.dailyGoal}</Text>
-                <Text style={styles.progressMetricLabel}>Günlük Hedef</Text>
-              </View>
-            </View>
-            {goalDone ? (
-              <View style={styles.goalDonePill}>
-                <Text style={styles.goalDoneText}>✓ Günlük hedef tamamlandı!</Text>
-              </View>
-            ) : (
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* A2 mastery */}
-        {progress !== null && (
-          <View style={styles.masteryCard}>
-            <View style={styles.masteryHeader}>
-              <Text style={styles.sectionLabel}>A2 İLERLEMESİ</Text>
-              <Text style={styles.masteryCount}>{masteredLen} / {TOTAL_A2_WORD_COUNT}</Text>
-            </View>
-            <View style={styles.masteryTrack}>
-              <View style={[
-                styles.masteryFill,
-                { width: `${Math.min(masteredLen / TOTAL_A2_WORD_COUNT, 1) * 100}%` as any },
-              ]} />
-            </View>
-            <Text style={styles.masterySubText}>
-              {masteredLen === 0
-                ? 'Her kelimeyi 5 kez doğru yap → öğrenildi'
-                : `${masteredLen} kelime öğrenildi — ${TOTAL_A2_WORD_COUNT - masteredLen} kaldı`}
-            </Text>
-            {progress.wrongIds.length > 0 && (
-              <TouchableOpacity
-                style={styles.reviewBtn}
-                onPress={() => navigation.navigate('Game', {
-                  duration: selectedDuration,
-                  reviewWordIds: progress.wrongIds,
-                  level: 'A2',
-                })}
-                activeOpacity={0.8}>
-                <Text style={styles.reviewBtnText}>
-                  Tekrar Çalış — {progress.wrongIds.length} kelime →
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* ── ÖĞREN ────────────────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>ÖĞREN</Text>
@@ -185,8 +120,96 @@ export default function A2Screen({ navigation }: { navigation: any }) {
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.footer}>Her gün birkaç kart, büyük bir adım 🚀</Text>
+        <TouchableOpacity style={styles.wordListBtn} onPress={() => setWordListMode('all')} activeOpacity={0.8}>
+          <Text style={styles.wordListBtnText}>📖 Kelimeleri Gör</Text>
+          <Text style={styles.wordListBtnCount}>{TOTAL_A2_WORD_COUNT} kelime →</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.favBtn} onPress={() => setWordListMode('favorites')} activeOpacity={0.8}>
+          <Text style={styles.favBtnText}>
+            <Text style={styles.favBtnStar}>★ </Text>Favorilerim
+          </Text>
+          <Text style={styles.favBtnCount}>{favCount} kelime →</Text>
+        </TouchableOpacity>
+
+        {/* A2 mastery */}
+        {progress !== null && (
+          <View style={styles.masteryCard}>
+            <View style={styles.masteryHeader}>
+              <Text style={styles.sectionLabel}>A2 İLERLEMESİ</Text>
+              <Text style={styles.masteryCount}>{masteredLen} / {TOTAL_A2_WORD_COUNT}</Text>
+            </View>
+            <View style={styles.masteryTrack}>
+              <View style={[
+                styles.masteryFill,
+                { width: `${Math.min(masteredLen / TOTAL_A2_WORD_COUNT, 1) * 100}%` as any },
+              ]} />
+            </View>
+            <Text style={styles.masterySubText}>
+              {masteredLen === 0
+                ? 'Her kelimeyi 5 kez doğru yap → öğrenildi'
+                : `${masteredLen} kelime öğrenildi — ${TOTAL_A2_WORD_COUNT - masteredLen} kaldı`}
+            </Text>
+            {progress.wrongIds.length > 0 && (
+              <TouchableOpacity
+                style={styles.reviewBtn}
+                onPress={() => navigation.navigate('Game', {
+                  duration: selectedDuration,
+                  reviewWordIds: progress.wrongIds,
+                  level: 'A2',
+                })}
+                activeOpacity={0.8}>
+                <Text style={styles.reviewBtnText}>
+                  Tekrar Çalış — {progress.wrongIds.length} kelime →
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Daily progress */}
+        {profile && stats && (
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.sectionLabel}>BUGÜN İLERLEME</Text>
+              {stats.streak > 0 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakBadgeText}>🔥 {stats.streak} gün</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.progressMetrics}>
+              <View style={styles.progressMetric}>
+                <Text style={styles.progressMetricNum}>{stats.todayCards}</Text>
+                <Text style={styles.progressMetricLabel}>Kart Açıldı</Text>
+              </View>
+              <View style={styles.progressMetricSep} />
+              <View style={styles.progressMetric}>
+                <Text style={styles.progressMetricNum}>{profile.dailyGoal}</Text>
+                <Text style={styles.progressMetricLabel}>Günlük Hedef</Text>
+              </View>
+            </View>
+            {goalDone ? (
+              <View style={styles.goalDonePill}>
+                <Text style={styles.goalDoneText}>✓ Günlük hedef tamamlandı!</Text>
+              </View>
+            ) : (
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
+
+      <WordListModal
+        visible={wordListMode !== null}
+        onClose={() => { setWordListMode(null); loadFavorites().then(f => setFavCount(f['A2'].length)); }}
+        level="A2"
+        words={wordBankA2}
+        title={wordListMode === 'favorites' ? 'A2 Favorilerim' : 'A2 Kelime Listesi'}
+        favoritesOnly={wordListMode === 'favorites'}
+      />
     </SafeAreaView>
   );
 }
@@ -218,11 +241,11 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2,
   },
-  sectionLabelSpaced: { marginTop: 28, marginBottom: 12 },
+  sectionLabelSpaced: { marginTop: 0, marginBottom: 12 },
 
   // Daily progress
   progressCard: {
-    backgroundColor: C.primaryBg, borderRadius: 18, padding: 18, marginBottom: 16,
+    backgroundColor: C.primaryBg, borderRadius: 18, padding: 18, marginTop: 16, marginBottom: 0,
     borderWidth: 1, borderColor: 'rgba(59,125,216,0.28)', gap: 14,
     borderLeftWidth: 4, borderLeftColor: C.primary,
     shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
@@ -251,7 +274,7 @@ const styles = StyleSheet.create({
 
   // Mastery
   masteryCard: {
-    backgroundColor: C.successBg, borderRadius: 18, padding: 18, marginBottom: 8,
+    backgroundColor: C.successBg, borderRadius: 18, padding: 18, marginTop: 16, marginBottom: 8,
     borderWidth: 1, borderColor: 'rgba(26,158,110,0.28)', gap: 10,
     borderLeftWidth: 4, borderLeftColor: C.success,
     shadowColor: C.success, shadowOffset: { width: 0, height: 2 },
@@ -259,8 +282,8 @@ const styles = StyleSheet.create({
   },
   masteryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   masteryCount: { fontSize: 13, fontWeight: '700', color: C.success },
-  masteryTrack: { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-  masteryFill: { height: '100%', backgroundColor: C.success, borderRadius: 3 },
+  masteryTrack: { height: 10, backgroundColor: C.border, borderRadius: 6, overflow: 'hidden' },
+  masteryFill: { height: '100%', backgroundColor: C.success, borderRadius: 6 },
   masterySubText: { fontSize: 12, color: C.textFaint, fontWeight: '500', letterSpacing: 0.1 },
   reviewBtn: {
     marginTop: 2, backgroundColor: 'rgba(220,38,38,0.07)',
@@ -310,6 +333,27 @@ const styles = StyleSheet.create({
     shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 10, elevation: 4,
   },
+  wordListBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 10,
+    borderWidth: 1, borderColor: C.border,
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
+  },
+  wordListBtnText: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  wordListBtnCount: { fontSize: 13, fontWeight: '600', color: C.primary },
+  favBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: C.warningBg, borderRadius: 16, padding: 16, marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(217,119,6,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.warning,
+    shadowColor: C.warning, shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
+  },
+  favBtnText: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  favBtnStar: { color: C.warning },
+  favBtnCount: { fontSize: 13, fontWeight: '600', color: C.warning },
   footer: {
     textAlign: 'center', fontSize: 12, color: C.textFaint,
     marginTop: 24, fontWeight: '500', letterSpacing: 0.3,

@@ -5,10 +5,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  loadAllProgress, loadGameStats,
-  AllProgress, LevelId, GameStats,
+  loadAllProgress, loadGameStats, loadStats, loadUnlockedAchievements,
+  AllProgress, LevelId, GameStats, AppStats, UnlockedAchievement,
 } from '../utils/storage';
 import { getWordEntries, wordsByLevel } from '../data/generateCard';
+import { ACHIEVEMENTS } from '../data/achievements';
 import GridBackground from '../components/GridBackground';
 
 const C = {
@@ -36,16 +37,23 @@ function fmtTime(secs: number): string {
 export default function StatsScreen() {
   const [progress, setProgress] = useState<AllProgress | null>(null);
   const [gameStats, setGameStats] = useState<GameStats | null>(null);
+  const [appStats, setAppStats] = useState<AppStats | null>(null);
+  const [unlocked, setUnlocked] = useState<UnlockedAchievement[]>([]);
   const [activeModal, setActiveModal] = useState<{ type: 'mastered' | 'wrong'; level: LevelId } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      Promise.all([loadAllProgress(), loadGameStats()]).then(([pr, gs]) => {
+      Promise.all([loadAllProgress(), loadGameStats(), loadStats(), loadUnlockedAchievements()]).then(([pr, gs, st, ach]) => {
         setProgress(pr);
         setGameStats(gs);
+        setAppStats(st);
+        setUnlocked(ach);
       });
     }, []),
   );
+
+  const unlockedIds = new Set(unlocked.map(u => u.id));
+  const unlockedCount = unlockedIds.size;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -61,7 +69,7 @@ export default function StatsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>OYUN İSTATİSTİKLERİ</Text>
 
-            <View style={styles.gameCard}>
+            <View style={[styles.gameCard, styles.gameCardBlue]}>
               <View style={styles.gameCardHeader}>
                 <Text style={styles.gameCardIcon}>🎯</Text>
                 <View style={{ flex: 1 }}>
@@ -98,7 +106,7 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            <View style={styles.gameCard}>
+            <View style={[styles.gameCard, styles.gameCardOrange]}>
               <View style={styles.gameCardHeader}>
                 <Text style={styles.gameCardIcon}>🏹</Text>
                 <View style={{ flex: 1 }}>
@@ -135,7 +143,7 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            <View style={styles.gameCard}>
+            <View style={[styles.gameCard, styles.gameCardGreen]}>
               <View style={styles.gameCardHeader}>
                 <Text style={styles.gameCardIcon}>🔗</Text>
                 <View style={{ flex: 1 }}>
@@ -167,7 +175,7 @@ export default function StatsScreen() {
                 </View>
               </View>
             </View>
-            <View style={styles.gameCard}>
+            <View style={[styles.gameCard, styles.gameCardRed]}>
               <View style={styles.gameCardHeader}>
                 <Text style={styles.gameCardIcon}>🃏</Text>
                 <View style={{ flex: 1 }}>
@@ -203,6 +211,31 @@ export default function StatsScreen() {
             </View>
           </View>
         )}
+
+        {/* Achievements */}
+        <View style={styles.section}>
+          <View style={styles.achHeader}>
+            <Text style={styles.sectionTitle}>ROZETLER</Text>
+            <Text style={styles.achCount}>{unlockedCount} / {ACHIEVEMENTS.length}</Text>
+          </View>
+          <View style={styles.achGrid}>
+            {ACHIEVEMENTS.map(a => {
+              const isUnlocked = unlockedIds.has(a.id);
+              return (
+                <View
+                  key={a.id}
+                  style={[styles.achCard, isUnlocked ? styles.achCardUnlocked : styles.achCardLocked]}
+                >
+                  <Text style={[styles.achEmoji, !isUnlocked && styles.achEmojiLocked]}>
+                    {isUnlocked ? a.emoji : '🔒'}
+                  </Text>
+                  <Text style={[styles.achTitle, !isUnlocked && styles.achTitleLocked]}>{a.title}</Text>
+                  <Text style={styles.achDesc}>{a.desc}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
 
         {/* Word pool */}
         <View style={styles.section}>
@@ -331,15 +364,39 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
 
   section: { gap: 10 },
-  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
+  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2 },
 
   gameCard: {
-    backgroundColor: C.surface, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    borderRadius: 18, padding: 16,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
   },
-  gameCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  gameCardBlue: {
+    backgroundColor: 'rgba(59,91,219,0.07)',
+    borderColor: 'rgba(59,91,219,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary,
+  },
+  gameCardOrange: {
+    backgroundColor: 'rgba(217,119,6,0.07)',
+    borderColor: 'rgba(217,119,6,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.warning,
+    shadowColor: C.warning,
+  },
+  gameCardGreen: {
+    backgroundColor: 'rgba(26,158,110,0.07)',
+    borderColor: 'rgba(26,158,110,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.success,
+    shadowColor: C.success,
+  },
+  gameCardRed: {
+    backgroundColor: 'rgba(220,38,38,0.06)',
+    borderColor: 'rgba(220,38,38,0.22)',
+    borderLeftWidth: 4, borderLeftColor: C.danger,
+    shadowColor: C.danger,
+  },
+  gameCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   gameCardIcon: { fontSize: 26 },
   gameCardTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
   gameCardSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', marginTop: 1 },
@@ -351,11 +408,12 @@ const styles = StyleSheet.create({
   gameBestText: { fontSize: 13, fontWeight: '800', color: C.warning },
   gameStatRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface2, borderRadius: 12, padding: 12,
+    borderTopWidth: 1, borderTopColor: C.border,
+    paddingTop: 12, marginTop: 2,
   },
   gameStatItem: { flex: 1, alignItems: 'center', gap: 3 },
   gameStatNum: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  gameStatLabel: { fontSize: 10, fontWeight: '600', color: C.textFaint, letterSpacing: 0.5, textAlign: 'center' },
+  gameStatLabel: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3, textAlign: 'center' },
   gameStatDivider: { width: 1, height: 32, backgroundColor: C.border },
 
   levelPoolBlock: { gap: 8 },
@@ -421,4 +479,33 @@ const styles = StyleSheet.create({
   },
   wordText: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
   wordExample: { fontSize: 12, color: C.textFaint, fontStyle: 'italic', letterSpacing: 0.1 },
+
+  // Achievements
+  achHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  achCount: { fontSize: 12, fontWeight: '700', color: C.textFaint, letterSpacing: 0.5 },
+  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  achCard: {
+    width: '47%',
+    borderRadius: 16, padding: 14, gap: 6,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
+  },
+  achCardUnlocked: {
+    backgroundColor: C.primaryBg,
+    borderColor: 'rgba(59,91,219,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary,
+  },
+  achCardLocked: {
+    backgroundColor: C.surface,
+    borderColor: C.border,
+    shadowColor: '#000',
+    opacity: 0.55,
+  },
+  achEmoji: { fontSize: 30 },
+  achEmojiLocked: { opacity: 0.5 },
+  achTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
+  achTitleLocked: { color: C.textFaint },
+  achDesc: { fontSize: 11, color: C.textFaint, fontWeight: '400', lineHeight: 15 },
 });

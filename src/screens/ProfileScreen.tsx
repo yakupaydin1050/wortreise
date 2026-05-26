@@ -1,18 +1,23 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Share, Linking,
-  TouchableWithoutFeedback,
+  TouchableWithoutFeedback, Platform, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   loadProfile, loadStats, saveProfile,
-  resetStats, resetProgress, resetGameStats,
+  resetStats, resetProgress, resetGameStats, resetAchievements,
   UserProfile, AppStats, getCharacter,
 } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
 import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
+import {
+  loadNotifPrefs, saveNotifPrefs, requestNotifPermission, getNotifPermissionStatus,
+  scheduleDailyNotif, cancelDailyNotif, NotifPrefs, NOTIF_TIME_PRESETS,
+} from '../utils/notifications';
+import { saveHapticsEnabled, getHapticsEnabled } from '../utils/haptics';
 
 const AVATARS = [
   '👨', '👩', '🧑', '👦', '👧', '👴', '👵', '🧔',
@@ -64,6 +69,8 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [policyVisible, setPolicyVisible] = useState(false);
   const [policyType, setPolicyType] = useState<PolicyType>('privacy');
   const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
+  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({ enabled: false, hour: 20, minute: 0 });
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
 
   function openPolicy(type: PolicyType) {
     setPolicyType(type);
@@ -72,12 +79,55 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
   useFocusEffect(
     useCallback(() => {
-      Promise.all([loadProfile(), loadStats()]).then(([p, s]) => {
+      Promise.all([loadProfile(), loadStats(), loadNotifPrefs()]).then(([p, s, n]) => {
         setProfile(p);
         setStats(s);
+        setNotifPrefs(n);
+        setHapticsEnabled(getHapticsEnabled());
       });
     }, []),
   );
+
+  async function handleNotifToggle(value: boolean) {
+    if (Platform.OS === 'web') return;
+    if (value) {
+      const status = await getNotifPermissionStatus();
+      let granted = status === 'granted';
+      if (status !== 'granted') {
+        granted = await requestNotifPermission();
+      }
+      if (!granted) {
+        Alert.alert(
+          'Bildirim İzni Gerekli',
+          'Bildirim almak için lütfen ayarlardan izin verin.',
+          [{ text: 'Tamam' }],
+        );
+        return;
+      }
+    }
+    const updated: NotifPrefs = { ...notifPrefs, enabled: value };
+    setNotifPrefs(updated);
+    await saveNotifPrefs(updated);
+    if (value) {
+      await scheduleDailyNotif(updated);
+    } else {
+      await cancelDailyNotif();
+    }
+  }
+
+  async function handleHapticsToggle(val: boolean) {
+    setHapticsEnabled(val);
+    await saveHapticsEnabled(val);
+  }
+
+  async function handleNotifTimeChange(hour: number, minute: number) {
+    const updated: NotifPrefs = { ...notifPrefs, hour, minute };
+    setNotifPrefs(updated);
+    await saveNotifPrefs(updated);
+    if (updated.enabled) {
+      await scheduleDailyNotif(updated);
+    }
+  }
 
   function startEdit() {
     if (!profile) return;
@@ -102,24 +152,32 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   }
 
   function handleResetStats() {
+    const doReset = async () => {
+      await Promise.all([resetStats(), resetProgress(), resetGameStats(), resetAchievements()]);
+      const s = await loadStats();
+      setStats(s);
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('İstatistikleri sıfırla?\n\nSeri ve tüm istatistikler silinecek. Kullanıcı adın ve günlük hedefin korunur.')) {
+        doReset();
+      }
+      return;
+    }
     Alert.alert(
       'İstatistikleri Sıfırla',
       'Seri ve tüm istatistikler silinecek.\n\nKullanıcı adın ve günlük hedefin korunur.',
       [
         { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Sıfırla', style: 'destructive',
-          onPress: async () => {
-            await Promise.all([resetStats(), resetProgress(), resetGameStats()]);
-            const s = await loadStats();
-            setStats(s);
-          },
-        },
+        { text: 'Sıfırla', style: 'destructive', onPress: doReset },
       ],
     );
   }
 
   async function handleReview() {
+    if (Platform.OS === 'web') {
+      Linking.openURL('https://wortreise.app');
+      return;
+    }
     const available = await StoreReview.isAvailableAsync();
     if (available) {
       await StoreReview.requestReview();
@@ -144,18 +202,22 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   }
 
   function handleLogout() {
+    const doLogout = async () => {
+      await AsyncStorage.clear();
+      navigation.getParent()?.replace('Onboarding');
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Çıkış yap?\n\nTüm veriler kalıcı olarak silinecek. Bu işlem geri alınamaz.')) {
+        doLogout();
+      }
+      return;
+    }
     Alert.alert(
       'Çıkış Yap',
       'Hesabın kalıcı olarak silinecek.\n\nİstatistikler ve günlük veriler kaybolacak.\n\nBu işlem geri alınamaz.',
       [
         { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Çıkış Yap', style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.clear();
-            navigation.replace('Onboarding');
-          },
-        },
+        { text: 'Çıkış Yap', style: 'destructive', onPress: doLogout },
       ],
     );
   }
@@ -294,6 +356,69 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             <StatBox value={accuracy()} label="İsabet" />
           </View>
         </View>
+
+        {/* Notifications */}
+        {Platform.OS !== 'web' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>BİLDİRİMLER</Text>
+            <View style={styles.notifCard}>
+              <View style={styles.notifToggleRow}>
+                <View style={styles.notifIconWrap}>
+                  <Text style={styles.notifIcon}>📳</Text>
+                </View>
+                <View style={styles.notifTextWrap}>
+                  <Text style={styles.notifTitle}>Titreşim</Text>
+                  <Text style={styles.notifSub}>Doğru/yanlış cevaplarda titreşim</Text>
+                </View>
+                <Switch
+                  value={hapticsEnabled}
+                  onValueChange={handleHapticsToggle}
+                  trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
+                  thumbColor={hapticsEnabled ? C.primary : C.textFaint}
+                />
+              </View>
+              <View style={{ height: 1, backgroundColor: C.border }} />
+              <View style={styles.notifToggleRow}>
+                <View style={styles.notifIconWrap}>
+                  <Text style={styles.notifIcon}>🔔</Text>
+                </View>
+                <View style={styles.notifTextWrap}>
+                  <Text style={styles.notifTitle}>Günlük Hatırlatıcı</Text>
+                  <Text style={styles.notifSub}>
+                    {notifPrefs.enabled
+                      ? `Her gün ${String(notifPrefs.hour).padStart(2, '0')}:${String(notifPrefs.minute).padStart(2, '0')}'de hatırlat`
+                      : 'Belirli bir saatte hatırlatma al'}
+                  </Text>
+                </View>
+                <Switch
+                  value={notifPrefs.enabled}
+                  onValueChange={handleNotifToggle}
+                  trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
+                  thumbColor={notifPrefs.enabled ? C.primary : C.textFaint}
+                />
+              </View>
+              {notifPrefs.enabled && (
+                <View style={styles.notifTimeRow}>
+                  {NOTIF_TIME_PRESETS.map(preset => {
+                    const active = preset.hour === notifPrefs.hour && preset.minute === notifPrefs.minute;
+                    return (
+                      <TouchableOpacity
+                        key={preset.label}
+                        style={[styles.notifTimeChip, active && styles.notifTimeChipActive]}
+                        onPress={() => handleNotifTimeChange(preset.hour, preset.minute)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.notifTimeText, active && styles.notifTimeTextActive]}>
+                          {preset.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* App actions */}
         <View style={styles.section}>
@@ -601,7 +726,7 @@ const styles = StyleSheet.create({
   streakBadgeNum: { fontSize: 20, fontWeight: '800', color: C.warning },
 
   section: { gap: 8 },
-  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
+  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2 },
 
   todayCard: {
     backgroundColor: C.primaryBg,
@@ -722,6 +847,37 @@ const styles = StyleSheet.create({
   footerDivider: { width: 32, height: 1, backgroundColor: C.border, marginVertical: 10 },
   footerCredit: { fontSize: 12, color: C.textDim, fontWeight: '500', letterSpacing: 0.2 },
   footerAI: { fontSize: 11, color: C.textFaint, fontWeight: '400', letterSpacing: 0.2, marginTop: 2 },
+
+  notifCard: {
+    backgroundColor: C.primaryBg,
+    borderRadius: 18, padding: 16, gap: 14,
+    borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
+    borderLeftWidth: 4, borderLeftColor: C.primary,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+  },
+  notifToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  notifIconWrap: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.borderBright,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  notifIcon: { fontSize: 18 },
+  notifTextWrap: { flex: 1, gap: 2 },
+  notifTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
+  notifSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', letterSpacing: 0.1 },
+  notifTimeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  notifTimeChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    borderWidth: 1.5, borderColor: C.borderBright, backgroundColor: C.surface,
+  },
+  notifTimeChipActive: {
+    borderColor: C.primary, backgroundColor: C.surface,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2, shadowRadius: 6, elevation: 2,
+  },
+  notifTimeText: { fontSize: 13, fontWeight: '700', color: C.textDim, letterSpacing: 0.3 },
+  notifTimeTextActive: { color: C.primary },
 
   policyOverlay: {
     flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',

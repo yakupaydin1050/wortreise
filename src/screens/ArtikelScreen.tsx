@@ -12,6 +12,8 @@ import type { WordEntry } from '../data/wordBank';
 import GridBackground from '../components/GridBackground';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import * as Haptics from 'expo-haptics';
+import { triggerHaptic } from '../utils/haptics';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_artikel_best_${lvl}`;
 const TIMER_SECONDS = 8;
@@ -169,6 +171,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
     ]).start();
+    triggerHaptic(Haptics.NotificationFeedbackType.Warning);
     setFeedback('timeout');
     setChosen(null);
     advance(false, 1500);
@@ -238,6 +241,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       ]).start();
       streakRef.current += 1;
       setStreak(streakRef.current);
+      triggerHaptic(Haptics.NotificationFeedbackType.Success);
       setFeedback('correct');
       advance(true, 900);
     } else {
@@ -248,6 +252,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
       ]).start();
+      triggerHaptic(Haptics.NotificationFeedbackType.Error);
       setFeedback('wrong');
       advance(false, 1500);
     }

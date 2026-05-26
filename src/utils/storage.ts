@@ -305,6 +305,39 @@ export async function resetGameStats(): Promise<void> {
   await AsyncStorage.removeItem(GAME_STATS_KEY);
 }
 
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+const ACHIEVEMENTS_KEY = '@lernspiel_achievements';
+
+export interface UnlockedAchievement {
+  id: string;
+  unlockedAt: string; // ISO date
+}
+
+export async function loadUnlockedAchievements(): Promise<UnlockedAchievement[]> {
+  try {
+    const raw = await AsyncStorage.getItem(ACHIEVEMENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function unlockAchievements(ids: string[]): Promise<void> {
+  const existing = await loadUnlockedAchievements();
+  const existingIds = new Set(existing.map(u => u.id));
+  const newOnes = ids
+    .filter(id => !existingIds.has(id))
+    .map(id => ({ id, unlockedAt: new Date().toISOString() }));
+  if (newOnes.length > 0) {
+    await AsyncStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify([...existing, ...newOnes]));
+  }
+}
+
+export async function resetAchievements(): Promise<void> {
+  await AsyncStorage.removeItem(ACHIEVEMENTS_KEY);
+}
+
 // ─── Review prompt ────────────────────────────────────────────────────────────
 const REVIEW_KEY = '@lernspiel_review_shown';
 const REVIEW_THRESHOLD = 5; // toplam oyun sayısı
@@ -368,6 +401,45 @@ export async function recordMatchingGame(
   }
   await saveGameStats(gs);
 }
+
+// ─── Favorites ────────────────────────────────────────────────────────────────
+
+const FAVORITES_KEY = '@lernspiel_favorites';
+export type FavoritesMap = Record<LevelId, string[]>;
+
+function defaultFavorites(): FavoritesMap {
+  return { A1: [], A2: [], B1: [] };
+}
+
+export async function loadFavorites(): Promise<FavoritesMap> {
+  try {
+    const raw = await AsyncStorage.getItem(FAVORITES_KEY);
+    if (!raw) return defaultFavorites();
+    const stored = JSON.parse(raw);
+    return { ...defaultFavorites(), ...stored };
+  } catch {
+    return defaultFavorites();
+  }
+}
+
+export async function toggleFavorite(level: LevelId, wordId: string): Promise<boolean> {
+  const favs = await loadFavorites();
+  const ids = favs[level];
+  const idx = ids.indexOf(wordId);
+  if (idx === -1) {
+    favs[level] = [...ids, wordId];
+  } else {
+    favs[level] = ids.filter(id => id !== wordId);
+  }
+  await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+  return idx === -1; // true = yeni eklendi
+}
+
+export async function clearFavorites(): Promise<void> {
+  await AsyncStorage.removeItem(FAVORITES_KEY);
+}
+
+// ─── Card completed ───────────────────────────────────────────────────────────
 
 export async function recordCardCompleted(
   correctCount: number,

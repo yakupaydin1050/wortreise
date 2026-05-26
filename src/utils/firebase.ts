@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDEGEDwt_739ouF8-CcqaJoAfT__e8WolE',
@@ -12,3 +13,6 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);
+
+// Sign in anonymously so Firestore rules that require auth pass
+signInAnonymously(getAuth(app)).catch(() => {});

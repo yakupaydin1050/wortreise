@@ -5,7 +5,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
-import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, UserProfile } from '../utils/storage';
+import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, loadGameStats, loadAllProgress, loadUnlockedAchievements, unlockAchievements, UserProfile } from '../utils/storage';
+import { cancelStreakNotif } from '../utils/notifications';
+import { ACHIEVEMENTS, AchievementDef, checkNewAchievements } from '../data/achievements';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import * as StoreReview from 'expo-store-review';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -95,6 +99,10 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [reportNote, setReportNote] = useState('');
   const [reportSending, setReportSending] = useState(false);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([]);
+  const [achModalVisible, setAchModalVisible] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const shareRef = useRef<View>(null);
   const hasRecorded = useRef(false);
 
   useEffect(() => {
@@ -180,8 +188,23 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
 
     if (shouldRecord && profile && !hasRecorded.current) {
       hasRecorded.current = true;
-      recordCardCompleted(correctCount, profile.dailyGoal).then(({ goalJustMet: met }) => {
+      recordCardCompleted(correctCount, profile.dailyGoal).then(async ({ stats: updatedStats, goalJustMet: met }) => {
         setGoalJustMet(met);
+        if (met) cancelStreakNotif();
+
+        const [gs, allProgress, unlockedList] = await Promise.all([
+          loadGameStats(),
+          loadAllProgress(),
+          loadUnlockedAchievements(),
+        ]);
+        const masteredCount = Object.values(allProgress).reduce((sum, p) => sum + p.masteredIds.length, 0);
+        const newly = checkNewAchievements(updatedStats, gs, masteredCount, unlockedList.map(u => u.id));
+        if (newly.length > 0) {
+          await unlockAchievements(newly.map(a => a.id));
+          setNewAchievements(newly);
+          setAchModalVisible(true);
+        }
+
         shouldPromptReview().then(yes => {
           if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
         });
@@ -239,10 +262,34 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
       setReportedIds(prev => new Set(prev).add(reportSentenceId));
       setReportVisible(false);
       Alert.alert('Teşekkürler!', 'Hata bildirimin alındı, inceleyeceğiz.');
-    } catch {
-      Alert.alert('Hata', 'Gönderim sırasında sorun oluştu, tekrar dene.');
+    } catch (e: any) {
+      Alert.alert('Hata', `Gönderim başarısız: ${e?.code ?? e?.message ?? 'bilinmeyen hata'}`);
     } finally {
       setReportSending(false);
+    }
+  }
+
+  function buildFullSentence(germanWithBlank: string, word: string): string {
+    const parts = germanWithBlank.split('___');
+    if (parts.length < 2) return germanWithBlank;
+    const displayWord = parts[0] === '' ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+    return parts[0] + displayWord + (parts[1] ?? '');
+  }
+
+  async function captureAndShare() {
+    try {
+      const uri = await captureRef(shareRef, { format: 'png', quality: 0.95 });
+      setShareVisible(false);
+      await new Promise(r => setTimeout(r, 300));
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Wortreise Kartını Paylaş' });
+      } else {
+        Alert.alert('Paylaşım Mevcut Değil', 'Bu cihazda paylaşım desteklenmiyor.');
+      }
+    } catch {
+      setShareVisible(false);
+      Alert.alert('Hata', 'Paylaşım sırasında bir sorun oluştu.');
     }
   }
 
@@ -358,9 +405,14 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
             </>
           )}
           {phase === 'results' && (
-            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleRestart}>
-              <Text style={[styles.actionBtnText, styles.actionBtnTextPrimary]}>Yeni Tur →</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)}>
+                <Text style={styles.actionBtnText}>📤 Paylaş</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleRestart}>
+                <Text style={[styles.actionBtnText, styles.actionBtnTextPrimary]}>Yeni Tur →</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>
@@ -451,6 +503,89 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
           )}
         </View>
       )}
+
+      {/* Share modal */}
+      <Modal
+        visible={shareVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareVisible(false)}
+      >
+        <View style={styles.shareOverlay}>
+          <View style={styles.shareModalWrap}>
+            <View ref={shareRef} collapsable={false} style={styles.shareCard}>
+              <View style={styles.shareCardHeader}>
+                <Text style={styles.shareCardFlag}>🇩🇪</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.shareCardAppName}>Wortreise</Text>
+                  <Text style={styles.shareCardTheme}>{card.theme}</Text>
+                </View>
+                <View style={styles.shareScoreBadge}>
+                  <Text style={styles.shareScoreBadgeText}>{solvedCount}/{total}</Text>
+                </View>
+              </View>
+              <View style={styles.shareCardDivider} />
+              {card.sentences.map(sentence => {
+                const slot = slots[sentence.id];
+                const correct = slot.isCorrect === true;
+                const usedWord = slot.filledWord ?? sentence.targetWord;
+                const fullSentence = buildFullSentence(sentence.germanWithBlank, usedWord);
+                return (
+                  <View key={sentence.id} style={[styles.shareSentRow, { borderLeftColor: correct ? '#1A9E6E' : '#DC2626' }]}>
+                    <Text style={[styles.shareSentMark, { color: correct ? '#1A9E6E' : '#DC2626' }]}>
+                      {correct ? '✓' : '✗'}
+                    </Text>
+                    <Text style={[styles.shareSentText, { color: correct ? '#1A2340' : '#DC2626' }]} numberOfLines={2}>
+                      {fullSentence}
+                    </Text>
+                  </View>
+                );
+              })}
+              <View style={styles.shareCardDivider} />
+              <Text style={styles.shareCardTagline}>Wortreise ile Almanca öğren! 🇩🇪</Text>
+            </View>
+            <View style={styles.shareActionRow}>
+              <TouchableOpacity style={styles.shareCancelBtn} onPress={() => setShareVisible(false)}>
+                <Text style={styles.shareCancelBtnText}>Kapat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareConfirmBtn} onPress={captureAndShare}>
+                <Text style={styles.shareConfirmBtnText}>Paylaş 📤</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Achievement unlock modal */}
+      <Modal
+        visible={achModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAchModalVisible(false)}
+      >
+        <View style={styles.achOverlay}>
+          <View style={styles.achSheet}>
+            <Text style={styles.achSheetTitle}>🏆 Rozet Kazandın!</Text>
+            <Text style={styles.achSheetSub}>Harika ilerleme!</Text>
+            {newAchievements.map(a => (
+              <View key={a.id} style={styles.achRow}>
+                <Text style={styles.achRowEmoji}>{a.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.achRowTitle}>{a.title}</Text>
+                  <Text style={styles.achRowDesc}>{a.desc}</Text>
+                </View>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={styles.achCloseBtn}
+              onPress={() => setAchModalVisible(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.achCloseBtnText}>Harika! →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Report modal */}
       <Modal
@@ -708,4 +843,81 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   reportSubmitBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
+
+  // Share modal
+  shareOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    justifyContent: 'center', alignItems: 'center', padding: 20,
+  },
+  shareModalWrap: { width: '100%', maxWidth: 380, gap: 14 },
+  shareCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, gap: 10,
+    borderWidth: 1, borderColor: '#DDE3F5',
+    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 8,
+  },
+  shareCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shareCardFlag: { fontSize: 26 },
+  shareCardAppName: { fontSize: 15, fontWeight: '800', color: '#1A2340', letterSpacing: 0.2 },
+  shareCardTheme: { fontSize: 11, fontWeight: '600', color: '#8896B8', letterSpacing: 0.5, marginTop: 1 },
+  shareScoreBadge: {
+    backgroundColor: '#EEF1FF', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#DDE3F5',
+  },
+  shareScoreBadgeText: { fontSize: 15, fontWeight: '800', color: '#3B5BDB' },
+  shareCardDivider: { height: 1, backgroundColor: '#EEF1FF' },
+  shareSentRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    paddingLeft: 8, borderLeftWidth: 3,
+  },
+  shareSentMark: { fontSize: 13, fontWeight: '700', lineHeight: 20, width: 16 },
+  shareSentText: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 19 },
+  shareCardTagline: {
+    fontSize: 12, color: '#8896B8', fontWeight: '500',
+    textAlign: 'center', letterSpacing: 0.2,
+  },
+  shareActionRow: { flexDirection: 'row', gap: 10 },
+  shareCancelBtn: {
+    flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#DDE3F5', backgroundColor: '#FFFFFF',
+  },
+  shareCancelBtnText: { fontSize: 14, fontWeight: '700', color: '#4E5C80' },
+  shareConfirmBtn: {
+    flex: 2, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    backgroundColor: '#3B5BDB',
+    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  shareConfirmBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
+
+  // Achievement modal
+  achOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28,
+  },
+  achSheet: {
+    backgroundColor: C.surface, borderRadius: 24, padding: 24, gap: 14,
+    width: '100%',
+    borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 24, elevation: 10,
+  },
+  achSheetTitle: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', letterSpacing: 0.1 },
+  achSheetSub: { fontSize: 14, color: C.textDim, textAlign: 'center', fontWeight: '500', marginTop: -6 },
+  achRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: C.primaryBg, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(59,91,219,0.2)',
+  },
+  achRowEmoji: { fontSize: 34 },
+  achRowTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
+  achRowDesc: { fontSize: 12, color: C.textDim, fontWeight: '400', marginTop: 2 },
+  achCloseBtn: {
+    backgroundColor: C.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28, shadowRadius: 12, elevation: 5,
+    marginTop: 4,
+  },
+  achCloseBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
 });

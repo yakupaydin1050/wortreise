@@ -13,6 +13,8 @@ import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBank';
 import GridBackground from '../components/GridBackground';
 import { db } from '../utils/firebase';
+import * as Haptics from 'expo-haptics';
+import { triggerHaptic } from '../utils/haptics';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type Difficulty = '4x3' | '4x4';
@@ -366,6 +368,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
         setLocked(true);
 
         if (firstCard.pairId === card.pairId) {
+          triggerHaptic(Haptics.NotificationFeedbackType.Success);
           setCelebratePair({ pairId: card.pairId, color: card.color });
           setTimeout(() => {
             setCards(p => p.map(c =>
@@ -375,6 +378,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
             setTimeout(() => setCelebratePair(null), 700);
           }, 500);
         } else {
+          triggerHaptic(Haptics.NotificationFeedbackType.Error);
           setTimeout(() => {
             setCards(p => p.map(c =>
               c.uid === firstUid || c.uid === uid ? { ...c, isFlipped: false } : c,

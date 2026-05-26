@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveProfile } from '../utils/storage';
@@ -24,6 +25,44 @@ const C = {
   danger: '#DC2626',
 };
 
+const SLIDES = [
+  {
+    emoji: '🇩🇪',
+    title: 'Schritt für Schritt',
+    subtitle: 'Almancayı adım adım öğren',
+    desc: 'Her gün küçük bir adım. Günlük kartlar, eğlenceli oyunlar ve streak takibiyle Almanca öğrenmek artık çok daha kolay.',
+    accent: '#3B5BDB',
+  },
+  {
+    emoji: '📝',
+    title: 'Kelime Kartları',
+    subtitle: 'Boşlukları doldur, öğren',
+    desc: 'Almanca cümlede eksik kelimeyi bul. 4 seçenekten birini seç — doğru yaparsan öğrenilmiş, yanlış yaparsan tekrar listene girer.',
+    accent: '#D97706',
+  },
+  {
+    emoji: '🔗',
+    title: 'Eşleştirme Oyunu',
+    subtitle: 'Sürükle ve eşleştir',
+    desc: 'Sol tarafta Almanca, sağ tarafta Türkçe. Doğru çifti bul ve birbirine bağla. Ne kadar hızlı tamamlayabilirsin?',
+    accent: '#7C3AED',
+  },
+  {
+    emoji: '🔥',
+    title: 'Streak Kur',
+    subtitle: 'Her gün bir adım at',
+    desc: 'Günlük hedefini belirle ve her gün tamamla. Streak\'in arttıkça motivasyonun da artar. Tek bir gün bile yeterli.',
+    accent: '#DC2626',
+  },
+  {
+    emoji: '🎯',
+    title: 'A1, A2, B1',
+    subtitle: 'Kendi seviyenden başla',
+    desc: 'Temel A1\'den ileri B1\'e uzanan yüzlerce kelime seni bekliyor. Seviyeni seç, kendi hızında ilerle.',
+    accent: '#1A9E6E',
+  },
+];
+
 const GOALS = [
   { label: '5', sub: 'Günlük alışkanlık', value: 5 },
   { label: '15', sub: 'Düzenli pratik', value: 15 },
@@ -40,6 +79,10 @@ const AVATARS = [
 
 
 export default function OnboardingScreen({ navigation }: { navigation: any }) {
+  const [phase, setPhase] = useState<'slides' | 'setup'>('slides');
+  const [slideIndex, setSlideIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   const [name, setName] = useState('');
   const [goal, setGoal] = useState(15);
   const [avatar, setAvatar] = useState('');
@@ -47,6 +90,25 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
   const [policyVisible, setPolicyVisible] = useState(false);
   const [policyType, setPolicyType] = useState<PolicyType>('privacy');
   const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
+
+  function fadeTransition(action: () => void) {
+    Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => {
+      action();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    });
+  }
+
+  function nextSlide() {
+    if (slideIndex < SLIDES.length - 1) {
+      fadeTransition(() => setSlideIndex(i => i + 1));
+    } else {
+      fadeTransition(() => setPhase('setup'));
+    }
+  }
+
+  function skipSlides() {
+    fadeTransition(() => setPhase('setup'));
+  }
 
   function openPolicy(type: PolicyType) {
     setPolicyType(type);
@@ -59,6 +121,65 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
     if (!canContinue) return;
     await saveProfile({ name: name.trim(), dailyGoal: goal, avatar: avatar || undefined });
     navigation.replace('Main');
+  }
+
+  if (phase === 'slides') {
+    const slide = SLIDES[slideIndex];
+    return (
+      <SafeAreaView style={styles.safe}>
+        <GridBackground />
+        <Animated.View style={[styles.slideFlex, { opacity: fadeAnim }]}>
+          {/* Top row */}
+          <View style={styles.slideTopRow}>
+            <Text style={styles.slideCounter}>{slideIndex + 1} / {SLIDES.length}</Text>
+            <TouchableOpacity onPress={skipSlides} style={styles.skipBtn} activeOpacity={0.7}>
+              <Text style={styles.skipText}>Geç</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Main content */}
+          <View style={styles.slideContent}>
+            <View style={[
+              styles.slideIconCard,
+              { backgroundColor: slide.accent + '18', borderColor: slide.accent + '55' },
+            ]}>
+              <Text style={styles.slideEmoji}>{slide.emoji}</Text>
+            </View>
+
+            <Text style={styles.slideTitle}>{slide.title}</Text>
+            <Text style={[styles.slideSubtitle, { color: slide.accent }]}>{slide.subtitle}</Text>
+            <Text style={styles.slideDesc}>{slide.desc}</Text>
+          </View>
+
+          {/* Bottom */}
+          <View style={styles.slideBottom}>
+            <View style={styles.dotRow}>
+              {SLIDES.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    i === slideIndex
+                      ? { backgroundColor: slide.accent, width: 22 }
+                      : { backgroundColor: C.border },
+                  ]}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.slideBtn, { backgroundColor: slide.accent, shadowColor: slide.accent }]}
+              onPress={nextSlide}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.slideBtnText}>
+                {slideIndex === SLIDES.length - 1 ? 'Hadi başlayalım →' : 'İleri →'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -293,6 +414,52 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
+
+  // Slides
+  slideFlex: { flex: 1, paddingHorizontal: 28, paddingBottom: 24 },
+  slideTopRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 16, marginBottom: 8,
+  },
+  slideCounter: { fontSize: 13, fontWeight: '600', color: C.textFaint, letterSpacing: 0.5 },
+  skipBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  skipText: { fontSize: 14, fontWeight: '600', color: C.textDim, letterSpacing: 0.2 },
+  slideContent: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20,
+  },
+  slideIconCard: {
+    width: 140, height: 140, borderRadius: 36,
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 4,
+    marginBottom: 8,
+  },
+  slideEmoji: { fontSize: 72, lineHeight: 88 },
+  slideTitle: {
+    fontSize: 26, fontWeight: '800', color: C.text,
+    textAlign: 'center', letterSpacing: 0.1,
+  },
+  slideSubtitle: {
+    fontSize: 15, fontWeight: '700',
+    textAlign: 'center', letterSpacing: 0.2, marginTop: -8,
+  },
+  slideDesc: {
+    fontSize: 15, color: C.textDim, fontWeight: '400',
+    textAlign: 'center', lineHeight: 23, letterSpacing: 0.1,
+    paddingHorizontal: 8,
+  },
+  slideBottom: { gap: 24, paddingBottom: 8 },
+  dotRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  slideBtn: {
+    borderRadius: 16, paddingVertical: 18, alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 14, elevation: 5,
+  },
+  slideBtnText: { fontSize: 17, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.4 },
+
+  // Setup form (existing)
   container: { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48, gap: 36 },
 
   hero: {},

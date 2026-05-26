@@ -11,6 +11,8 @@ import type { LevelId } from '../utils/storage';
 import GridBackground from '../components/GridBackground';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import * as Haptics from 'expo-haptics';
+import { triggerHaptic } from '../utils/haptics';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAIR_COUNT = 10;
@@ -156,9 +158,11 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
     if (matchedIds.has(id) || wrongPair) return;
     if (!selectedLeftId) return;
     if (id === selectedLeftId) {
+      triggerHaptic(Haptics.NotificationFeedbackType.Success);
       setMatchedIds(prev => new Set([...prev, id]));
       setSelectedLeftId(null);
     } else {
+      triggerHaptic(Haptics.NotificationFeedbackType.Error);
       setWrongPair({ left: selectedLeftId, right: id });
       shake();
       if (wrongTimer.current) clearTimeout(wrongTimer.current);
