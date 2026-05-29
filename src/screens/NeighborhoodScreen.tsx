@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 20 * 2 - 12) / 2;
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
 };

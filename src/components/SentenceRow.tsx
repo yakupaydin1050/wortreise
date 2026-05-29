@@ -129,7 +129,7 @@ export default function SentenceRow({
     isCorrect === false ? 'rgba(220,38,38,0.08)' :
     displayWord         ? 'rgba(217,119,6,0.09)' :
     selectedWord        ? 'rgba(59,91,219,0.09)' :
-                          '#F8F9FE';
+                          '#FAF8F4';
 
   return (
     <View style={[styles.card, { borderLeftColor: accentColor, backgroundColor: cardBgColor, borderColor: cardBorderColor }]}>

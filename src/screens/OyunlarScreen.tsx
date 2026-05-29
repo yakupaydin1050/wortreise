@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GridBackground from '../components/GridBackground';
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5', borderBright: '#B8C4E8',
   primary: '#3B5BDB', primaryBg: 'rgba(59,91,219,0.10)',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
@@ -86,9 +86,6 @@ export default function OyunlarScreen({ navigation }: { navigation: any }) {
                 </View>
                 <Text style={styles.cardTitle}>{g.title}</Text>
               </View>
-              <View style={[styles.pill, { borderColor: `${g.color}40` }]}>
-                <Text style={[styles.pillText, { color: g.color }]}>● OYUN</Text>
-              </View>
             </View>
             <Text style={styles.cardDesc}>{g.desc}</Text>
             <View style={styles.cardFooter}>
@@ -132,12 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   cardIconText: { fontSize: 20 },
-  pill: {
-    backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1,
-  },
-  pillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: C.text, letterSpacing: 0.1, flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1, flex: 1 },
   cardDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, marginBottom: 8, letterSpacing: 0.1 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardMeta: { fontSize: 12, fontWeight: '600', color: C.textDim },

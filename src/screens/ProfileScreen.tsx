@@ -29,7 +29,7 @@ const AVATARS = [
 import GridBackground from '../components/GridBackground';
 
 const C = {
-  bg: '#F8F9FE',
+  bg: '#FAF8F4',
   surface: '#FFFFFF',
   surface2: '#EEF1FF',
   border: '#DDE3F5',
@@ -71,6 +71,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({ enabled: false, hour: 20, minute: 0 });
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const [tab, setTab] = useState<'profile' | 'settings'>('profile');
 
   function openPolicy(type: PolicyType) {
     setPolicyType(type);
@@ -230,272 +231,290 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={styles.safe}>
       <GridBackground />
+
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'profile' && styles.tabBtnActive]}
+          onPress={() => setTab('profile')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabBtnText, tab === 'profile' && styles.tabBtnTextActive]}>Profil</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'settings' && styles.tabBtnActive]}
+          onPress={() => setTab('settings')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabBtnText, tab === 'settings' && styles.tabBtnTextActive]}>Ayarlar</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {editing ? (
-          <View style={styles.editCard}>
-            <Text style={styles.editTitle}>Profili Düzenle</Text>
-            <Text style={styles.editLabel}>KULLANICI ADI</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editName}
-              onChangeText={setEditName}
-              autoCapitalize="words"
-              maxLength={24}
-              autoFocus
-              placeholderTextColor={C.textFaint}
-              selectionColor={C.primary}
-            />
-            <Text style={styles.editLabel}>AVATAR</Text>
-            <TouchableOpacity
-              style={styles.avatarTrigger}
-              onPress={() => setAvatarSheetVisible(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.avatarTriggerCircle, editAvatar && editAvatar !== '👤' ? styles.avatarTriggerCircleSelected : {}]}>
-                <Text style={styles.avatarTriggerEmoji}>{editAvatar || '?'}</Text>
-              </View>
-              <View style={styles.avatarTriggerInfo}>
-                <Text style={styles.avatarTriggerTitle}>
-                  {editAvatar && editAvatar !== '👤' ? 'Avatar seçildi' : 'Avatar seç'}
-                </Text>
-                <Text style={styles.avatarTriggerHint}>Değiştirmek için dokun</Text>
-              </View>
-              <Text style={styles.avatarTriggerArrow}>›</Text>
-            </TouchableOpacity>
-            <Text style={styles.editLabel}>GÜNLÜK HEDEF</Text>
-            <View style={styles.goalRow}>
-              {GOAL_OPTIONS.map(g => (
+        {tab === 'profile' && (
+          <>
+            {editing ? (
+              <View style={styles.editCard}>
+                <Text style={styles.editTitle}>Profili Düzenle</Text>
+                <Text style={styles.editLabel}>KULLANICI ADI</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoCapitalize="words"
+                  maxLength={24}
+                  autoFocus
+                  placeholderTextColor={C.textFaint}
+                  selectionColor={C.primary}
+                />
+                <Text style={styles.editLabel}>AVATAR</Text>
                 <TouchableOpacity
-                  key={g}
-                  style={[styles.goalChip, editGoal === g && styles.goalChipActive]}
-                  onPress={() => setEditGoal(g)}
+                  style={styles.avatarTrigger}
+                  onPress={() => setAvatarSheetVisible(true)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.goalChipText, editGoal === g && styles.goalChipTextActive]}>
-                    {g} kart
-                  </Text>
+                  <View style={[styles.avatarTriggerCircle, editAvatar && editAvatar !== '👤' ? styles.avatarTriggerCircleSelected : {}]}>
+                    <Text style={styles.avatarTriggerEmoji}>{editAvatar || '?'}</Text>
+                  </View>
+                  <View style={styles.avatarTriggerInfo}>
+                    <Text style={styles.avatarTriggerTitle}>
+                      {editAvatar && editAvatar !== '👤' ? 'Avatar seçildi' : 'Avatar seç'}
+                    </Text>
+                    <Text style={styles.avatarTriggerHint}>Değiştirmek için dokun</Text>
+                  </View>
+                  <Text style={styles.avatarTriggerArrow}>›</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.editActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
-                <Text style={styles.cancelBtnText}>Vazgeç</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, editName.trim().length < 2 && styles.saveBtnDisabled]}
-                onPress={saveEdit}
-                disabled={editName.trim().length < 2}
-              >
-                <Text style={styles.saveBtnText}>Kaydet</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.heroCard}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarEmoji}>{getCharacter(profile)}</Text>
-            </View>
-            <Text style={styles.nameText} numberOfLines={1}>{profile.name}</Text>
-            <TouchableOpacity style={styles.editBtn} onPress={startEdit}>
-              <Text style={styles.editBtnText}>Düzenle</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Streak */}
-        <View style={styles.streakCard}>
-          <Text style={styles.streakIcon}>🔥</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.streakNumber}>{stats.streak} günlük seri</Text>
-            <Text style={styles.streakSub}>En uzun seri: {stats.longestStreak} gün</Text>
-          </View>
-          {stats.streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakBadgeNum}>{stats.streak}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Today */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>BUGÜN İLERLEME</Text>
-          <View style={styles.todayCard}>
-            <View style={styles.todayMetrics}>
-              <View style={styles.todayMetric}>
-                <Text style={styles.todayMetricNum}>{stats.todayCards}</Text>
-                <Text style={styles.todayMetricLabel}>Kart Açıldı</Text>
-              </View>
-              <View style={styles.todayMetricSep} />
-              <View style={styles.todayMetric}>
-                <Text style={styles.todayMetricNum}>{profile.dailyGoal}</Text>
-                <Text style={styles.todayMetricLabel}>Günlük Hedef</Text>
-              </View>
-            </View>
-            {goalDone ? (
-              <View style={styles.goalDonePill}>
-                <Text style={styles.goalDoneText}>✓ Hedef tamamlandı!</Text>
+                <Text style={styles.editLabel}>GÜNLÜK HEDEF</Text>
+                <View style={styles.goalRow}>
+                  {GOAL_OPTIONS.map(g => (
+                    <TouchableOpacity
+                      key={g}
+                      style={[styles.goalChip, editGoal === g && styles.goalChipActive]}
+                      onPress={() => setEditGoal(g)}
+                    >
+                      <Text style={[styles.goalChipText, editGoal === g && styles.goalChipTextActive]}>
+                        {g} kart
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.editActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
+                    <Text style={styles.cancelBtnText}>Vazgeç</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, editName.trim().length < 2 && styles.saveBtnDisabled]}
+                    onPress={saveEdit}
+                    disabled={editName.trim().length < 2}
+                  >
+                    <Text style={styles.saveBtnText}>Kaydet</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
+              <View style={styles.heroCard}>
+                <View style={styles.avatarCircle}>
+                  <Text style={styles.avatarEmoji}>{getCharacter(profile)}</Text>
+                </View>
+                <Text style={styles.nameText} numberOfLines={1}>{profile.name}</Text>
+                <TouchableOpacity style={styles.editBtn} onPress={startEdit}>
+                  <Text style={styles.editBtnText}>Düzenle</Text>
+                </TouchableOpacity>
               </View>
             )}
-          </View>
-        </View>
 
-        {/* Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>TOPLAM</Text>
-          <View style={styles.statsGrid}>
-            <StatBox value={stats.totalCards} label="Kart" />
-            <StatBox value={stats.totalWords} label="Kelime" />
-            <StatBox value={stats.totalCorrect} label="Doğru" />
-            <StatBox value={accuracy()} label="İsabet" />
-          </View>
-        </View>
-
-        {/* Notifications */}
-        {Platform.OS !== 'web' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>BİLDİRİMLER</Text>
-            <View style={styles.notifCard}>
-              <View style={styles.notifToggleRow}>
-                <View style={styles.notifIconWrap}>
-                  <Text style={styles.notifIcon}>📳</Text>
-                </View>
-                <View style={styles.notifTextWrap}>
-                  <Text style={styles.notifTitle}>Titreşim</Text>
-                  <Text style={styles.notifSub}>Doğru/yanlış cevaplarda titreşim</Text>
-                </View>
-                <Switch
-                  value={hapticsEnabled}
-                  onValueChange={handleHapticsToggle}
-                  trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
-                  thumbColor={hapticsEnabled ? C.primary : C.textFaint}
-                />
+            <View style={styles.streakCard}>
+              <Text style={styles.streakIcon}>🔥</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.streakNumber}>{stats.streak} günlük seri</Text>
+                <Text style={styles.streakSub}>En uzun seri: {stats.longestStreak} gün</Text>
               </View>
-              <View style={{ height: 1, backgroundColor: C.border }} />
-              <View style={styles.notifToggleRow}>
-                <View style={styles.notifIconWrap}>
-                  <Text style={styles.notifIcon}>🔔</Text>
-                </View>
-                <View style={styles.notifTextWrap}>
-                  <Text style={styles.notifTitle}>Günlük Hatırlatıcı</Text>
-                  <Text style={styles.notifSub}>
-                    {notifPrefs.enabled
-                      ? `Her gün ${String(notifPrefs.hour).padStart(2, '0')}:${String(notifPrefs.minute).padStart(2, '0')}'de hatırlat`
-                      : 'Belirli bir saatte hatırlatma al'}
-                  </Text>
-                </View>
-                <Switch
-                  value={notifPrefs.enabled}
-                  onValueChange={handleNotifToggle}
-                  trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
-                  thumbColor={notifPrefs.enabled ? C.primary : C.textFaint}
-                />
-              </View>
-              {notifPrefs.enabled && (
-                <View style={styles.notifTimeRow}>
-                  {NOTIF_TIME_PRESETS.map(preset => {
-                    const active = preset.hour === notifPrefs.hour && preset.minute === notifPrefs.minute;
-                    return (
-                      <TouchableOpacity
-                        key={preset.label}
-                        style={[styles.notifTimeChip, active && styles.notifTimeChipActive]}
-                        onPress={() => handleNotifTimeChange(preset.hour, preset.minute)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.notifTimeText, active && styles.notifTimeTextActive]}>
-                          {preset.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              {stats.streak > 0 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakBadgeNum}>{stats.streak}</Text>
                 </View>
               )}
             </View>
-          </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Bugün İlerleme</Text>
+              <View style={styles.todayCard}>
+                <View style={styles.todayMetrics}>
+                  <View style={styles.todayMetric}>
+                    <Text style={styles.todayMetricNum}>{stats.todayCards}</Text>
+                    <Text style={styles.todayMetricLabel}>Kart Açıldı</Text>
+                  </View>
+                  <View style={styles.todayMetricSep} />
+                  <View style={styles.todayMetric}>
+                    <Text style={styles.todayMetricNum}>{profile.dailyGoal}</Text>
+                    <Text style={styles.todayMetricLabel}>Günlük Hedef</Text>
+                  </View>
+                </View>
+                {goalDone ? (
+                  <View style={styles.goalDonePill}>
+                    <Text style={styles.goalDoneText}>✓ Hedef tamamlandı!</Text>
+                  </View>
+                ) : (
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Toplam</Text>
+              <View style={styles.statsGrid}>
+                <StatBox value={stats.totalCards} label="Kart" />
+                <StatBox value={stats.totalWords} label="Kelime" />
+                <StatBox value={stats.totalCorrect} label="Doğru" />
+                <StatBox value={accuracy()} label="İsabet" />
+              </View>
+            </View>
+          </>
         )}
 
-        {/* App actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>UYGULAMA</Text>
-          <TouchableOpacity style={styles.shareCard} onPress={handleReview} activeOpacity={0.75}>
-            <View style={[styles.shareIconWrap, { backgroundColor: 'rgba(217,119,6,0.10)', borderColor: 'rgba(217,119,6,0.25)' }]}>
-              <Text style={styles.shareIcon}>⭐</Text>
-            </View>
-            <View style={styles.shareTextWrap}>
-              <Text style={[styles.shareTitle, { color: C.warning }]}>Uygulamayı Değerlendir</Text>
-              <Text style={styles.shareSub}>Görüşlerin bizim için değerli</Text>
-            </View>
-            <Text style={[styles.shareChevron, { color: C.warning }]}>›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.shareCard} onPress={handleShare} activeOpacity={0.75}>
-            <View style={styles.shareIconWrap}>
-              <Text style={styles.shareIcon}>📤</Text>
-            </View>
-            <View style={styles.shareTextWrap}>
-              <Text style={styles.shareTitle}>Uygulamayı Tavsiye Et</Text>
-              <Text style={styles.shareSub}>Arkadaşlarına öner, birlikte öğrenin</Text>
-            </View>
-            <Text style={styles.shareChevron}>›</Text>
-          </TouchableOpacity>
-        </View>
+        {tab === 'settings' && (
+          <>
+            {Platform.OS !== 'web' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Bildirimler</Text>
+                <View style={styles.notifCard}>
+                  <View style={styles.notifToggleRow}>
+                    <View style={styles.notifIconWrap}>
+                      <Text style={styles.notifIcon}>📳</Text>
+                    </View>
+                    <View style={styles.notifTextWrap}>
+                      <Text style={styles.notifTitle}>Titreşim</Text>
+                      <Text style={styles.notifSub}>Doğru/yanlış cevaplarda titreşim</Text>
+                    </View>
+                    <Switch
+                      value={hapticsEnabled}
+                      onValueChange={handleHapticsToggle}
+                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
+                      thumbColor={hapticsEnabled ? C.primary : C.textFaint}
+                    />
+                  </View>
+                  <View style={{ height: 1, backgroundColor: C.border }} />
+                  <View style={styles.notifToggleRow}>
+                    <View style={styles.notifIconWrap}>
+                      <Text style={styles.notifIcon}>🔔</Text>
+                    </View>
+                    <View style={styles.notifTextWrap}>
+                      <Text style={styles.notifTitle}>Günlük Hatırlatıcı</Text>
+                      <Text style={styles.notifSub}>
+                        {notifPrefs.enabled
+                          ? `Her gün ${String(notifPrefs.hour).padStart(2, '0')}:${String(notifPrefs.minute).padStart(2, '0')}'de hatırlat`
+                          : 'Belirli bir saatte hatırlatma al'}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={notifPrefs.enabled}
+                      onValueChange={handleNotifToggle}
+                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
+                      thumbColor={notifPrefs.enabled ? C.primary : C.textFaint}
+                    />
+                  </View>
+                  {notifPrefs.enabled && (
+                    <View style={styles.notifTimeRow}>
+                      {NOTIF_TIME_PRESETS.map(preset => {
+                        const active = preset.hour === notifPrefs.hour && preset.minute === notifPrefs.minute;
+                        return (
+                          <TouchableOpacity
+                            key={preset.label}
+                            style={[styles.notifTimeChip, active && styles.notifTimeChipActive]}
+                            onPress={() => handleNotifTimeChange(preset.hour, preset.minute)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.notifTimeText, active && styles.notifTimeTextActive]}>
+                              {preset.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
-        {/* Account actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>HESAP</Text>
-          <TouchableOpacity style={[styles.actionCard, styles.actionRowReset]} onPress={handleResetStats} activeOpacity={0.7}>
-            <View style={styles.actionRowInner}>
-              <Text style={styles.actionResetText}>İstatistikleri Sıfırla</Text>
-              <Text style={styles.actionSub}>Seri ve istatistikler silinir, profil kalır</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Uygulama</Text>
+              <TouchableOpacity style={styles.shareCard} onPress={handleReview} activeOpacity={0.75}>
+                <View style={[styles.shareIconWrap, { backgroundColor: 'rgba(217,119,6,0.10)', borderColor: 'rgba(217,119,6,0.25)' }]}>
+                  <Text style={styles.shareIcon}>⭐</Text>
+                </View>
+                <View style={styles.shareTextWrap}>
+                  <Text style={[styles.shareTitle, { color: C.warning }]}>Uygulamayı Değerlendir</Text>
+                  <Text style={styles.shareSub}>Görüşlerin bizim için değerli</Text>
+                </View>
+                <Text style={[styles.shareChevron, { color: C.warning }]}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareCard} onPress={handleShare} activeOpacity={0.75}>
+                <View style={styles.shareIconWrap}>
+                  <Text style={styles.shareIcon}>📤</Text>
+                </View>
+                <View style={styles.shareTextWrap}>
+                  <Text style={styles.shareTitle}>Uygulamayı Tavsiye Et</Text>
+                  <Text style={styles.shareSub}>Arkadaşlarına öner, birlikte öğrenin</Text>
+                </View>
+                <Text style={styles.shareChevron}>›</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.actionChevron, { color: C.resetColor }]}>›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionCard, styles.actionRowLogout]} onPress={handleLogout} activeOpacity={0.7}>
-            <View style={styles.actionRowInner}>
-              <Text style={styles.actionLogoutText}>Çıkış Yap</Text>
-              <Text style={styles.actionSub}>Tüm veriler kalıcı olarak silinir</Text>
-            </View>
-            <Text style={[styles.actionChevron, { color: C.logoutColor }]}>›</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Legal */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>YASAL</Text>
-          <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('privacy')} activeOpacity={0.7}>
-            <View style={styles.legalIconWrap}>
-              <Text style={styles.legalIconEmoji}>🔒</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Hesap</Text>
+              <TouchableOpacity style={[styles.actionCard, styles.actionRowReset]} onPress={handleResetStats} activeOpacity={0.7}>
+                <View style={styles.actionRowInner}>
+                  <Text style={styles.actionResetText}>İstatistikleri Sıfırla</Text>
+                  <Text style={styles.actionSub}>Seri ve istatistikler silinir, profil kalır</Text>
+                </View>
+                <Text style={[styles.actionChevron, { color: C.resetColor }]}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionCard, styles.actionRowLogout]} onPress={handleLogout} activeOpacity={0.7}>
+                <View style={styles.actionRowInner}>
+                  <Text style={styles.actionLogoutText}>Çıkış Yap</Text>
+                  <Text style={styles.actionSub}>Tüm veriler kalıcı olarak silinir</Text>
+                </View>
+                <Text style={[styles.actionChevron, { color: C.logoutColor }]}>›</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.legalLabel}>Gizlilik Politikası</Text>
-            <Text style={styles.legalChevron}>›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('terms')} activeOpacity={0.7}>
-            <View style={styles.legalIconWrap}>
-              <Text style={styles.legalIconEmoji}>📋</Text>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Yasal</Text>
+              <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('privacy')} activeOpacity={0.7}>
+                <View style={styles.legalIconWrap}>
+                  <Text style={styles.legalIconEmoji}>🔒</Text>
+                </View>
+                <Text style={styles.legalLabel}>Gizlilik Politikası</Text>
+                <Text style={styles.legalChevron}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('terms')} activeOpacity={0.7}>
+                <View style={styles.legalIconWrap}>
+                  <Text style={styles.legalIconEmoji}>📋</Text>
+                </View>
+                <Text style={styles.legalLabel}>Kullanım Koşulları</Text>
+                <Text style={styles.legalChevron}>›</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.legalLabel}>Kullanım Koşulları</Text>
-            <Text style={styles.legalChevron}>›</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Footer */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>HAKKINDA</Text>
-        <View style={styles.footerCard}>
-          <Text style={styles.footerFlag}>🇩🇪</Text>
-          <Text style={styles.footerAppName}>Wortreise</Text>
-          <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
-          <View style={styles.footerDivider} />
-          <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
-          <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
-        </View>
-        </View>
-
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Hakkında</Text>
+              <View style={styles.footerCard}>
+                <Text style={styles.footerFlag}>🇩🇪</Text>
+                <Text style={styles.footerAppName}>Wortreise</Text>
+                <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
+                <View style={styles.footerDivider} />
+                <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
+                <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Policy modal */}
@@ -580,6 +599,21 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
+  tabBar: {
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    backgroundColor: C.bg,
+  },
+  tabBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+  },
+  tabBtnActive: {
+    backgroundColor: C.primaryBg, borderColor: C.primary,
+  },
+  tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
+  tabBtnTextActive: { color: C.primary },
   container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 16 },
 
   heroCard: {
@@ -726,7 +760,7 @@ const styles = StyleSheet.create({
   streakBadgeNum: { fontSize: 20, fontWeight: '800', color: C.warning },
 
   section: { gap: 8 },
-  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2 },
+  sectionTitle: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3 },
 
   todayCard: {
     backgroundColor: C.primaryBg,

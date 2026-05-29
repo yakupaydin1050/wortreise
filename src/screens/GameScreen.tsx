@@ -18,7 +18,7 @@ import WordChip from '../components/WordChip';
 import GridBackground from '../components/GridBackground';
 
 const C = {
-  bg: '#F8F9FE',
+  bg: '#FAF8F4',
   surface: '#FFFFFF',
   surface2: '#EEF1FF',
   border: '#DDE3F5',

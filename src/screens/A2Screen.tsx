@@ -13,7 +13,7 @@ import WordListModal from '../components/WordListModal';
 const TOTAL_A2_WORD_COUNT = wordBankA2.length;
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5', borderBright: '#B8C4E8',
   primary: '#3B7DD8', primaryBg: 'rgba(59,125,216,0.10)',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
@@ -74,9 +74,6 @@ export default function A2Screen({ navigation }: { navigation: any }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-        {/* ── ÖĞREN ────────────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>ÖĞREN</Text>
 
         {/* Duration selector */}
         <View style={styles.durationRow}>
@@ -167,39 +164,6 @@ export default function A2Screen({ navigation }: { navigation: any }) {
           </View>
         )}
 
-        {/* Daily progress */}
-        {profile && stats && (
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.sectionLabel}>BUGÜN İLERLEME</Text>
-              {stats.streak > 0 && (
-                <View style={styles.streakBadge}>
-                  <Text style={styles.streakBadgeText}>🔥 {stats.streak} gün</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.progressMetrics}>
-              <View style={styles.progressMetric}>
-                <Text style={styles.progressMetricNum}>{stats.todayCards}</Text>
-                <Text style={styles.progressMetricLabel}>Kart Açıldı</Text>
-              </View>
-              <View style={styles.progressMetricSep} />
-              <View style={styles.progressMetric}>
-                <Text style={styles.progressMetricNum}>{profile.dailyGoal}</Text>
-                <Text style={styles.progressMetricLabel}>Günlük Hedef</Text>
-              </View>
-            </View>
-            {goalDone ? (
-              <View style={styles.goalDonePill}>
-                <Text style={styles.goalDoneText}>✓ Günlük hedef tamamlandı!</Text>
-              </View>
-            ) : (
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
-              </View>
-            )}
-          </View>
-        )}
       </ScrollView>
 
       <WordListModal

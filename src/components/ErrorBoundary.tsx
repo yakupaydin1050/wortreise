@@ -37,7 +37,7 @@ export default class ErrorBoundary extends React.Component<
           <Text style={styles.emoji}>😵</Text>
           <Text style={styles.title}>Bir şeyler ters gitti</Text>
           <Text style={styles.body}>
-            Beklenmedik bir hata oluştu. Sorun otomatik olarak raporlandı.
+            Beklenmedik bir hata oluştu. Uygulama kararlılığını artırmak için teknik hata bilgisi gönderildi.
           </Text>
           <TouchableOpacity
             style={styles.btn}
@@ -55,7 +55,7 @@ export default class ErrorBoundary extends React.Component<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: '#FAF8F4',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,

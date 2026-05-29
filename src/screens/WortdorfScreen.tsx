@@ -5,7 +5,7 @@ import { NEIGHBORHOODS, BUILDINGS } from '../data/wortdorf';
 import GridBackground from '../components/GridBackground';
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
   warning: '#D97706', warningBg: 'rgba(217,119,6,0.12)',

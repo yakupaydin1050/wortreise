@@ -8,7 +8,7 @@ import { loadFavorites, toggleFavorite } from '../utils/storage';
 import type { WordEntry } from '../data/wordBank';
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF', surface2: '#EEF1FF',
+  bg: '#FAF8F4', surface: '#FFFFFF', surface2: '#EEF1FF',
   border: '#DDE3F5', borderBright: '#B8C4E8',
   primary: '#3B5BDB',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',

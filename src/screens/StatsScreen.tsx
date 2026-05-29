@@ -13,7 +13,7 @@ import { ACHIEVEMENTS } from '../data/achievements';
 import GridBackground from '../components/GridBackground';
 
 const C = {
-  bg: '#F8F9FE',
+  bg: '#FAF8F4',
   surface: '#FFFFFF',
   surface2: '#EEF1FF',
   border: '#DDE3F5',
@@ -40,6 +40,7 @@ export default function StatsScreen() {
   const [appStats, setAppStats] = useState<AppStats | null>(null);
   const [unlocked, setUnlocked] = useState<UnlockedAchievement[]>([]);
   const [activeModal, setActiveModal] = useState<{ type: 'mastered' | 'wrong'; level: LevelId } | null>(null);
+  const [tab, setTab] = useState<'stats' | 'words'>('stats');
 
   useFocusEffect(
     useCallback(() => {
@@ -58,16 +59,31 @@ export default function StatsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <GridBackground />
+
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'stats' && styles.tabBtnActive]}
+          onPress={() => setTab('stats')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabBtnText, tab === 'stats' && styles.tabBtnTextActive]}>İstatistik</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'words' && styles.tabBtnActive]}
+          onPress={() => setTab('words')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabBtnText, tab === 'words' && styles.tabBtnTextActive]}>Kelimeler</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>İstatistik</Text>
-
-        {/* Game stats */}
-        {gameStats && (
+        {tab === 'stats' && gameStats && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>OYUN İSTATİSTİKLERİ</Text>
+            <Text style={styles.sectionTitle}>Oyun İstatistikleri</Text>
 
             <View style={[styles.gameCard, styles.gameCardBlue]}>
               <View style={styles.gameCardHeader}>
@@ -212,81 +228,83 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* Achievements */}
-        <View style={styles.section}>
-          <View style={styles.achHeader}>
-            <Text style={styles.sectionTitle}>ROZETLER</Text>
-            <Text style={styles.achCount}>{unlockedCount} / {ACHIEVEMENTS.length}</Text>
+        {tab === 'stats' && (
+          <View style={styles.section}>
+            <View style={styles.achHeader}>
+              <Text style={styles.sectionTitle}>Rozetler</Text>
+              <Text style={styles.achCount}>{unlockedCount} / {ACHIEVEMENTS.length}</Text>
+            </View>
+            <View style={styles.achGrid}>
+              {ACHIEVEMENTS.map(a => {
+                const isUnlocked = unlockedIds.has(a.id);
+                return (
+                  <View
+                    key={a.id}
+                    style={[styles.achCard, isUnlocked ? styles.achCardUnlocked : styles.achCardLocked]}
+                  >
+                    <Text style={[styles.achEmoji, !isUnlocked && styles.achEmojiLocked]}>
+                      {isUnlocked ? a.emoji : '🔒'}
+                    </Text>
+                    <Text style={[styles.achTitle, !isUnlocked && styles.achTitleLocked]}>{a.title}</Text>
+                    <Text style={styles.achDesc}>{a.desc}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-          <View style={styles.achGrid}>
-            {ACHIEVEMENTS.map(a => {
-              const isUnlocked = unlockedIds.has(a.id);
+        )}
+
+        {tab === 'words' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Kelime Havuzu</Text>
+            {(['A1', 'A2', 'B1'] as LevelId[]).map(lvl => {
+              const lvlProgress = progress?.[lvl];
+              const isActive = wordsByLevel[lvl].length > 0;
+              const mastered = lvlProgress?.masteredIds.length ?? 0;
+              const review = lvlProgress?.wrongIds.length ?? 0;
               return (
-                <View
-                  key={a.id}
-                  style={[styles.achCard, isUnlocked ? styles.achCardUnlocked : styles.achCardLocked]}
-                >
-                  <Text style={[styles.achEmoji, !isUnlocked && styles.achEmojiLocked]}>
-                    {isUnlocked ? a.emoji : '🔒'}
-                  </Text>
-                  <Text style={[styles.achTitle, !isUnlocked && styles.achTitleLocked]}>{a.title}</Text>
-                  <Text style={styles.achDesc}>{a.desc}</Text>
+                <View key={lvl} style={styles.levelPoolBlock}>
+                  <View style={styles.levelPoolHeader}>
+                    <View style={[styles.levelPoolBadge, !isActive && styles.levelPoolBadgeDim]}>
+                      <Text style={[styles.levelPoolBadgeText, !isActive && styles.levelPoolBadgeTextDim]}>{lvl}</Text>
+                    </View>
+                    {!isActive && (
+                      <Text style={styles.levelPoolSoon}>YAKINDA</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.wordPoolCard, styles.wordPoolCardGreen, !isActive && styles.wordPoolCardDisabled]}
+                    onPress={() => isActive && setActiveModal({ type: 'mastered', level: lvl })}
+                    activeOpacity={isActive ? 0.8 : 1}
+                  >
+                    <View style={styles.wordPoolInner}>
+                      <Text style={styles.wordPoolIcon}>✓</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.wordPoolTitle}>Öğrenilen Kelimeler</Text>
+                        <Text style={styles.wordPoolSub}>{mastered} kelime öğrenildi</Text>
+                      </View>
+                    </View>
+                    {isActive && <Text style={[styles.wordPoolChevron, { color: C.success }]}>›</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.wordPoolCard, styles.wordPoolCardRed, !isActive && styles.wordPoolCardDisabled]}
+                    onPress={() => isActive && setActiveModal({ type: 'wrong', level: lvl })}
+                    activeOpacity={isActive ? 0.8 : 1}
+                  >
+                    <View style={styles.wordPoolInner}>
+                      <Text style={styles.wordPoolIcon}>↺</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.wordPoolTitle, { color: C.danger }]}>Tekrar Çalışılacaklar</Text>
+                        <Text style={styles.wordPoolSub}>{review} kelime tekrar bekliyor</Text>
+                      </View>
+                    </View>
+                    {isActive && <Text style={[styles.wordPoolChevron, { color: C.danger }]}>›</Text>}
+                  </TouchableOpacity>
                 </View>
               );
             })}
           </View>
-        </View>
-
-        {/* Word pool */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>KELİME HAVUZU</Text>
-          {(['A1', 'A2', 'B1'] as LevelId[]).map(lvl => {
-            const lvlProgress = progress?.[lvl];
-            const isActive = wordsByLevel[lvl].length > 0;
-            const mastered = lvlProgress?.masteredIds.length ?? 0;
-            const review = lvlProgress?.wrongIds.length ?? 0;
-            return (
-              <View key={lvl} style={styles.levelPoolBlock}>
-                <View style={styles.levelPoolHeader}>
-                  <View style={[styles.levelPoolBadge, !isActive && styles.levelPoolBadgeDim]}>
-                    <Text style={[styles.levelPoolBadgeText, !isActive && styles.levelPoolBadgeTextDim]}>{lvl}</Text>
-                  </View>
-                  {!isActive && (
-                    <Text style={styles.levelPoolSoon}>YAKINDA</Text>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={[styles.wordPoolCard, styles.wordPoolCardGreen, !isActive && styles.wordPoolCardDisabled]}
-                  onPress={() => isActive && setActiveModal({ type: 'mastered', level: lvl })}
-                  activeOpacity={isActive ? 0.8 : 1}
-                >
-                  <View style={styles.wordPoolInner}>
-                    <Text style={styles.wordPoolIcon}>✓</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.wordPoolTitle}>Öğrenilen Kelimeler</Text>
-                      <Text style={styles.wordPoolSub}>{mastered} kelime öğrenildi</Text>
-                    </View>
-                  </View>
-                  {isActive && <Text style={[styles.wordPoolChevron, { color: C.success }]}>›</Text>}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.wordPoolCard, styles.wordPoolCardRed, !isActive && styles.wordPoolCardDisabled]}
-                  onPress={() => isActive && setActiveModal({ type: 'wrong', level: lvl })}
-                  activeOpacity={isActive ? 0.8 : 1}
-                >
-                  <View style={styles.wordPoolInner}>
-                    <Text style={styles.wordPoolIcon}>↺</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.wordPoolTitle, { color: C.danger }]}>Tekrar Çalışılacaklar</Text>
-                      <Text style={styles.wordPoolSub}>{review} kelime tekrar bekliyor</Text>
-                    </View>
-                  </View>
-                  {isActive && <Text style={[styles.wordPoolChevron, { color: C.danger }]}>›</Text>}
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
+        )}
       </ScrollView>
 
       {/* Word list modal */}
@@ -359,12 +377,23 @@ export default function StatsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  container: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 48, gap: 24 },
-
-  pageTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
+  tabBar: {
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    backgroundColor: C.bg,
+  },
+  tabBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+  },
+  tabBtnActive: { backgroundColor: C.primaryBg, borderColor: C.primary },
+  tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
+  tabBtnTextActive: { color: C.primary },
+  container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 24 },
 
   section: { gap: 10 },
-  sectionTitle: { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2 },
+  sectionTitle: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3 },
 
   gameCard: {
     borderRadius: 18, padding: 16,
@@ -398,7 +427,7 @@ const styles = StyleSheet.create({
   },
   gameCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   gameCardIcon: { fontSize: 26 },
-  gameCardTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
+  gameCardTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
   gameCardSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', marginTop: 1 },
   gameBestBadge: {
     backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 10,

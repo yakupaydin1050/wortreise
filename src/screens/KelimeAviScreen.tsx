@@ -28,7 +28,7 @@ interface Best { streak: number; seconds: number }
 interface HistoryItem { word: HuntWord; type: 'correct' | 'wrong' | 'timeout' }
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5', borderBright: '#B8C4E8',
   primary: '#0891B2', primaryBg: 'rgba(8,145,178,0.10)',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   reportWordDe: { fontSize: 15, fontWeight: '700', color: C.text },
   reportWordTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
   reportInput: {
-    backgroundColor: '#F8F9FE', borderRadius: 12,
+    backgroundColor: '#FAF8F4', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: C.text, fontWeight: '500',
     borderWidth: 1.5, borderColor: C.borderBright,

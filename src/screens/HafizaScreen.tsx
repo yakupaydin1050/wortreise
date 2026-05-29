@@ -28,7 +28,7 @@ const H_PAD = 16;
 const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP * (COLS - 1)) / COLS);
 
 const C = {
-  bg: '#F8F9FE', surface: '#FFFFFF',
+  bg: '#FAF8F4', surface: '#FFFFFF',
   border: '#DDE3F5',
   primary: '#6366F1',
   primaryBg: 'rgba(99,102,241,0.10)',

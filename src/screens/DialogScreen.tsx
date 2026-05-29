@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   speakerName: { fontSize: 13, fontWeight: '700', color: C.textDim },
 
   dialogBubble: {
-    backgroundColor: '#F8F9FE',
+    backgroundColor: '#FAF8F4',
     borderRadius: 16, padding: 18,
     borderWidth: 1, borderColor: C.border,
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   choiceBtn: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#F8F9FE', borderRadius: 14,
+    backgroundColor: '#FAF8F4', borderRadius: 14,
     padding: 16, borderWidth: 1.5, borderColor: C.border,
   },
   choiceBullet: { fontSize: 14, color: C.primary, fontWeight: '800', marginTop: 1 },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     flex: 1, borderRadius: 14, paddingVertical: 15,
     alignItems: 'center', borderWidth: 1.5, borderColor: C.border,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: '#FAF8F4',
   },
   retryBtnText: { fontSize: 15, fontWeight: '700', color: C.textDim },
   doneBtn: {

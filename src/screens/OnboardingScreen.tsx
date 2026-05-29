@@ -2,15 +2,17 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal,
-  Animated,
+  Animated, Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveProfile } from '../utils/storage';
 import GridBackground from '../components/GridBackground';
 import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
 
 const C = {
-  bg: '#F8F9FE',
+  bg: '#FAF8F4',
   surface: '#FFFFFF',
   surface2: '#EEF1FF',
   border: '#DDE3F5',
@@ -31,13 +33,15 @@ const SLIDES = [
     title: 'Schritt für Schritt',
     subtitle: 'Almancayı adım adım öğren',
     desc: 'Her gün küçük bir adım. Günlük kartlar, eğlenceli oyunlar ve streak takibiyle Almanca öğrenmek artık çok daha kolay.',
+    quote: '„Wer sichere Schritte tun will, muss sie langsam tun." — Goethe',
     accent: '#3B5BDB',
   },
   {
     emoji: '📝',
-    title: 'Kelime Kartları',
-    subtitle: 'Boşlukları doldur, öğren',
+    title: 'Boşluk Doldurma',
+    subtitle: 'Doğru kelimeyi bul',
     desc: 'Almanca cümlede eksik kelimeyi bul. 4 seçenekten birini seç — doğru yaparsan öğrenilmiş, yanlış yaparsan tekrar listene girer.',
+    visual: 'Ich _____ Deutsch.\n① lerne  ② esse  ③ schlafe  ④ spiele',
     accent: '#D97706',
   },
   {
@@ -45,7 +49,32 @@ const SLIDES = [
     title: 'Eşleştirme Oyunu',
     subtitle: 'Sürükle ve eşleştir',
     desc: 'Sol tarafta Almanca, sağ tarafta Türkçe. Doğru çifti bul ve birbirine bağla. Ne kadar hızlı tamamlayabilirsin?',
+    visual: 'Hund  ——  Köpek\nKatze ——  Kedi',
     accent: '#7C3AED',
+  },
+  {
+    emoji: '🃏',
+    title: 'Hafıza Kartları',
+    subtitle: 'Çevir ve eşleştir',
+    desc: 'Yüzü kapalı kartları çevir, Almanca-Türkçe çiftleri bul. Hafızanı zorlayan, tekrar ettiren bir klasik.',
+    visual: '🟦 🟦 🟦\n🟦 🟩 🟦\n🟦 🟦 🟦',
+    accent: '#0EA5E9',
+  },
+  {
+    emoji: '🎯',
+    title: 'Kelime Avı',
+    subtitle: 'Hızlı düşün, doğru seç',
+    desc: 'Ekranda beliren kelimeleri hızlıca değerlendir — doğruysa al, yanlışsa bırak. Reflekslerini ve kelime bilgini aynı anda sına.',
+    visual: '✅ der Apfel\n❌ die Buch\n✅ das Kind',
+    accent: '#E11D48',
+  },
+  {
+    emoji: '🏷️',
+    title: 'Artikel Oyunu',
+    subtitle: 'der • die • das',
+    desc: 'Almancada her ismin bir artikeli var. Kartlar geliyor — sen karar ver. Tekrar ettikçe içgüdüye dönüşür.',
+    visual: 'der 🧑  die 🌹  das 🏠\nHangi artikel?',
+    accent: '#F59E0B',
   },
   {
     emoji: '🔥',
@@ -55,7 +84,7 @@ const SLIDES = [
     accent: '#DC2626',
   },
   {
-    emoji: '🎯',
+    emoji: '🏆',
     title: 'A1, A2, B1',
     subtitle: 'Kendi seviyenden başla',
     desc: 'Temel A1\'den ileri B1\'e uzanan yüzlerce kelime seni bekliyor. Seviyeni seç, kendi hızında ilerle.',
@@ -81,7 +110,9 @@ const AVATARS = [
 export default function OnboardingScreen({ navigation }: { navigation: any }) {
   const [phase, setPhase] = useState<'slides' | 'setup'>('slides');
   const [slideIndex, setSlideIndex] = useState(0);
+  const [slideAreaHeight, setSlideAreaHeight] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollRef = useRef<ScrollView>(null);
 
   const [name, setName] = useState('');
   const [goal, setGoal] = useState(15);
@@ -100,7 +131,9 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
   function nextSlide() {
     if (slideIndex < SLIDES.length - 1) {
-      fadeTransition(() => setSlideIndex(i => i + 1));
+      const next = slideIndex + 1;
+      scrollRef.current?.scrollTo({ x: next * SCREEN_W, animated: true });
+      setSlideIndex(next);
     } else {
       fadeTransition(() => setPhase('setup'));
     }
@@ -108,6 +141,11 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
   function skipSlides() {
     fadeTransition(() => setPhase('setup'));
+  }
+
+  function handleMomentumScrollEnd(e: any) {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+    setSlideIndex(idx);
   }
 
   function openPolicy(type: PolicyType) {
@@ -137,19 +175,42 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
           </View>
 
-          {/* Main content */}
-          <View style={styles.slideContent}>
-            <View style={[
-              styles.slideIconCard,
-              { backgroundColor: slide.accent + '18', borderColor: slide.accent + '55' },
-            ]}>
-              <Text style={styles.slideEmoji}>{slide.emoji}</Text>
-            </View>
+          {/* Swipeable slides */}
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            scrollEventThrottle={16}
+            style={{ flex: 1 }}
+            onLayout={(e) => setSlideAreaHeight(e.nativeEvent.layout.height)}
+          >
+            {SLIDES.map((s, i) => (
+              <View key={i} style={[styles.slideItem, { height: slideAreaHeight || undefined }]}>
+                <View style={[
+                  styles.slideIconCard,
+                  { backgroundColor: s.accent + '18', borderColor: s.accent + '55' },
+                ]}>
+                  <Text style={styles.slideEmoji}>{s.emoji}</Text>
+                </View>
 
-            <Text style={styles.slideTitle}>{slide.title}</Text>
-            <Text style={[styles.slideSubtitle, { color: slide.accent }]}>{slide.subtitle}</Text>
-            <Text style={styles.slideDesc}>{slide.desc}</Text>
-          </View>
+                <Text style={styles.slideTitle}>{s.title}</Text>
+                <Text style={[styles.slideSubtitle, { color: s.accent }]}>{s.subtitle}</Text>
+                <Text style={styles.slideDesc}>{s.desc}</Text>
+
+                {'visual' in s && s.visual ? (
+                  <View style={[styles.slideVisualBox, { borderColor: s.accent + '44', backgroundColor: s.accent + '0E' }]}>
+                    <Text style={[styles.slideVisualText, { color: s.accent }]}>{s.visual}</Text>
+                  </View>
+                ) : null}
+
+                {'quote' in s && s.quote ? (
+                  <Text style={styles.slideQuote}>{s.quote}</Text>
+                ) : null}
+              </View>
+            ))}
+          </ScrollView>
 
           {/* Bottom */}
           <View style={styles.slideBottom}>
@@ -204,6 +265,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
                 <Text style={styles.subtitle}>Haydi başlayalım!</Text>
               </View>
             </View>
+            <Text style={styles.heroQuote}>„Aller Anfang ist schwer!"</Text>
           </View>
 
           <View style={[styles.sectionCard, { backgroundColor: 'rgba(59,91,219,0.07)', borderColor: 'rgba(59,91,219,0.28)' }]}>
@@ -416,16 +478,31 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
   // Slides
-  slideFlex: { flex: 1, paddingHorizontal: 28, paddingBottom: 24 },
+  slideFlex: { flex: 1, paddingBottom: 24 },
   slideTopRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 16, marginBottom: 8,
+    paddingTop: 16, marginBottom: 8, paddingHorizontal: 28,
   },
   slideCounter: { fontSize: 13, fontWeight: '600', color: C.textFaint, letterSpacing: 0.5 },
   skipBtn: { paddingHorizontal: 12, paddingVertical: 6 },
   skipText: { fontSize: 14, fontWeight: '600', color: C.textDim, letterSpacing: 0.2 },
-  slideContent: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20,
+  slideItem: {
+    width: SCREEN_W, paddingHorizontal: 28,
+    alignItems: 'center', justifyContent: 'center', gap: 20,
+  },
+  slideVisualBox: {
+    borderWidth: 1.5, borderRadius: 14,
+    paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center',
+    width: '100%',
+  },
+  slideVisualText: {
+    fontSize: 14, fontWeight: '700', lineHeight: 22,
+    textAlign: 'center', letterSpacing: 0.2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  slideQuote: {
+    fontSize: 13, fontStyle: 'italic', color: C.textDim,
+    textAlign: 'center', lineHeight: 20, letterSpacing: 0.1,
+    paddingHorizontal: 8,
   },
   slideIconCard: {
     width: 140, height: 140, borderRadius: 36,
@@ -448,7 +525,7 @@ const styles = StyleSheet.create({
     textAlign: 'center', lineHeight: 23, letterSpacing: 0.1,
     paddingHorizontal: 8,
   },
-  slideBottom: { gap: 24, paddingBottom: 8 },
+  slideBottom: { gap: 24, paddingBottom: 8, paddingHorizontal: 28 },
   dotRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   slideBtn: {
@@ -462,8 +539,12 @@ const styles = StyleSheet.create({
   // Setup form (existing)
   container: { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48, gap: 36 },
 
-  hero: {},
+  hero: { gap: 10 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  heroQuote: {
+    fontSize: 13, fontStyle: 'italic', color: C.textDim,
+    letterSpacing: 0.2, lineHeight: 19,
+  },
   flagWrap: {
     width: 60, height: 60, borderRadius: 18,
     backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center',
