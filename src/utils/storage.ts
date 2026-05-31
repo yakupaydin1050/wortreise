@@ -6,7 +6,7 @@ const ALL_PROGRESS_KEY = '@lernspiel_all_progress';
 const LEGACY_PROGRESS_KEY = '@lernspiel_progress';
 const GAME_STATS_KEY = '@lernspiel_game_stats';
 
-export const MASTERY_THRESHOLD = 5;
+export const MASTERY_THRESHOLD = 3;
 
 export type LevelId = 'A1' | 'A2' | 'B1';
 

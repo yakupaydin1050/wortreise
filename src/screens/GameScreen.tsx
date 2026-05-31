@@ -214,6 +214,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
 
   const handleKontrolEt = useCallback(() => {
     if (filledCount === 0) {
+      if (Platform.OS === 'web') { performEvaluate(false); return; }
       Alert.alert(
         'Hiçbir boşluk doldurulmadı',
         'Henüz hiçbir soruyu yanıtlamadın.\n\nBu kart günlük hedefe sayılmaz. Yine de devam etmek istiyor musun?',
@@ -223,6 +224,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         ],
       );
     } else if (filledCount < total) {
+      if (Platform.OS === 'web') { performEvaluate(true); return; }
       Alert.alert(
         'Eksik Yanıtlar',
         `${total - filledCount} boşluk boş kaldı. Tüm soruları yanıtlamadan kontrol etmek istiyor musun?`,

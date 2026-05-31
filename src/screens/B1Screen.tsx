@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  loadProfile, loadStats, loadLevelProgress, loadFavorites,
+  loadProfile, loadStats, loadLevelProgress, loadFavorites, resetProgress,
   UserProfile, AppStats, LevelProgress,
 } from '../utils/storage';
 import { wordBankB1 } from '../data/wordBankB1';
@@ -53,6 +53,13 @@ export default function B1Screen({ navigation }: { navigation: any }) {
     : 0;
   const goalDone = profile && stats ? stats.todayCards >= profile.dailyGoal : false;
   const masteredLen = progress?.masteredIds.length ?? 0;
+  const isAllMastered = TOTAL_B1_WORD_COUNT > 0 && masteredLen >= TOTAL_B1_WORD_COUNT;
+
+  async function handleReset() {
+    await resetProgress('B1');
+    const pr = await loadLevelProgress('B1');
+    setProgress(pr);
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -142,24 +149,35 @@ export default function B1Screen({ navigation }: { navigation: any }) {
                 { width: `${Math.min(masteredLen / TOTAL_B1_WORD_COUNT, 1) * 100}%` as any },
               ]} />
             </View>
-            <Text style={styles.masterySubText}>
-              {masteredLen === 0
-                ? 'Her kelimeyi 5 kez doğru yap → öğrenildi'
-                : `${masteredLen} kelime öğrenildi — ${TOTAL_B1_WORD_COUNT - masteredLen} kaldı`}
-            </Text>
-            {progress.wrongIds.length > 0 && (
-              <TouchableOpacity
-                style={styles.reviewBtn}
-                onPress={() => navigation.navigate('Game', {
-                  duration: selectedDuration,
-                  reviewWordIds: progress.wrongIds,
-                  level: 'B1',
-                })}
-                activeOpacity={0.8}>
-                <Text style={styles.reviewBtnText}>
-                  Tekrar Çalış — {progress.wrongIds.length} kelime →
+            {isAllMastered ? (
+              <>
+                <Text style={styles.masterySubText}>🏆 Tüm B1 kelimelerini öğrendin!</Text>
+                <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
+                  <Text style={styles.resetBtnText}>İlerlemeyi Sıfırla</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.masterySubText}>
+                  {masteredLen === 0
+                    ? 'Her kelimeyi 3 kez doğru yap → öğrenildi'
+                    : `${masteredLen} kelime öğrenildi — ${TOTAL_B1_WORD_COUNT - masteredLen} kaldı`}
                 </Text>
-              </TouchableOpacity>
+                {progress.wrongIds.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.reviewBtn}
+                    onPress={() => navigation.navigate('Game', {
+                      duration: selectedDuration,
+                      reviewWordIds: progress.wrongIds,
+                      level: 'B1',
+                    })}
+                    activeOpacity={0.8}>
+                    <Text style={styles.reviewBtnText}>
+                      Tekrar Çalış — {progress.wrongIds.length} kelime →
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         )}
@@ -253,6 +271,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(220,38,38,0.22)',
   },
   reviewBtnText: { fontSize: 13, fontWeight: '700', color: C.danger, letterSpacing: 0.2 },
+  resetBtn: {
+    marginTop: 2, backgroundColor: 'rgba(220,38,38,0.07)',
+    borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(220,38,38,0.22)',
+  },
+  resetBtnText: { fontSize: 13, fontWeight: '700', color: C.danger, letterSpacing: 0.2 },
 
   durationRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   durationBtn: {

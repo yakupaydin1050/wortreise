@@ -103,26 +103,30 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
               onPress={() => navigation.navigate(item.screen!)}
               activeOpacity={0.85}>
               <View style={styles.cardTop}>
-                <View style={[styles.levelBadge, { backgroundColor: item.color }]}>
-                  <Text style={styles.levelBadgeText}>{item.label}</Text>
+                <View style={styles.cardTitleArea}>
+                  <View style={[styles.levelBadge, { backgroundColor: item.color }]}>
+                    <Text style={styles.levelBadgeText}>{item.label}</Text>
+                  </View>
+                  <Text style={styles.levelTitle} numberOfLines={1}>{item.title}</Text>
                 </View>
                 <Text style={styles.levelEmoji}>{item.emoji}</Text>
               </View>
-              <Text style={styles.levelTitle}>{item.title}</Text>
               <Text style={styles.levelDesc}>{item.desc}</Text>
             </TouchableOpacity>
           ) : (
             <View key={item.id}
               style={[styles.levelCardDisabled, { backgroundColor: item.colorBg, borderColor: item.colorBorder }]}>
               <View style={styles.cardTop}>
-                <View style={[styles.levelBadgeOutline, { backgroundColor: item.colorBg, borderColor: item.color + '55' }]}>
-                  <Text style={[styles.levelBadgeOutlineText, { color: item.color }]}>{item.label}</Text>
+                <View style={styles.cardTitleArea}>
+                  <View style={[styles.levelBadgeOutline, { backgroundColor: item.colorBg, borderColor: item.color + '55' }]}>
+                    <Text style={[styles.levelBadgeOutlineText, { color: item.color }]}>{item.label}</Text>
+                  </View>
+                  <Text style={styles.levelTitleDisabled} numberOfLines={1}>{item.title}</Text>
                 </View>
                 <View style={styles.soonPill}>
                   <Text style={styles.soonPillText}>YAKINDA</Text>
                 </View>
               </View>
-              <Text style={styles.levelTitleDisabled}>{item.title}</Text>
               <Text style={styles.levelDescDisabled}>{item.desc}</Text>
             </View>
           )
@@ -135,12 +139,14 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
           activeOpacity={0.85}
         >
           <View style={styles.wortdorfHeader}>
-            <Text style={styles.wortdorfIcon}>🏘️</Text>
+            <View style={styles.wortdorfTitleArea}>
+              <Text style={styles.wortdorfIcon}>🏘️</Text>
+              <Text style={styles.wortdorfTitle}>Wortstadt</Text>
+            </View>
             <View style={styles.wortdorfBadge}>
               <Text style={styles.wortdorfBadgeText}>BETA</Text>
             </View>
           </View>
-          <Text style={styles.wortdorfTitle}>Wortstadt</Text>
           <Text style={styles.wortdorfDesc}>
             Almanya'da günlük hayatı yaşa — markette, bankada, doktorda Almanca konuş.
           </Text>
@@ -157,7 +163,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  safe: { flex: 1, backgroundColor: '#EEF1FF' },
   container: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48, gap: 12 },
 
   header: { marginBottom: 4 },
@@ -185,7 +191,10 @@ const styles = StyleSheet.create({
 
   cardTop: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
+    alignItems: 'center', marginBottom: 8,
+  },
+  cardTitleArea: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8,
   },
   levelEmoji: { fontSize: 32, opacity: 0.9 },
 
@@ -213,8 +222,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(217,119,6,0.25)',
   },
   soonPillText: { fontSize: 10, fontWeight: '700', color: C.warning, letterSpacing: 0.8 },
-  levelTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 5, letterSpacing: 0.1 },
-  levelTitleDisabled: { fontSize: 17, fontWeight: '700', color: C.textDim, marginBottom: 5, letterSpacing: 0.1 },
+  levelTitle: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1, flex: 1 },
+  levelTitleDisabled: { fontSize: 16, fontWeight: '700', color: C.textDim, letterSpacing: 0.1, flex: 1 },
   levelDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, letterSpacing: 0.1 },
   levelDescDisabled: { fontSize: 13, color: C.textFaint, lineHeight: 19, letterSpacing: 0.1 },
 
@@ -226,16 +235,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14, shadowRadius: 10, elevation: 4,
   },
   wortdorfHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
   },
-  wortdorfIcon: { fontSize: 32 },
+  wortdorfTitleArea: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 },
+  wortdorfIcon: { fontSize: 28 },
   wortdorfBadge: {
     backgroundColor: 'rgba(201,124,46,0.15)', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: 'rgba(201,124,46,0.35)',
   },
   wortdorfBadgeText: { fontSize: 10, fontWeight: '700', color: '#C97C2E', letterSpacing: 0.8 },
-  wortdorfTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 5 },
+  wortdorfTitle: { fontSize: 17, fontWeight: '800', color: C.text, flex: 1 },
   wortdorfDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, marginBottom: 16 },
   wortdorfFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

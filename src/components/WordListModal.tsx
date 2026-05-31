@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
+
+const SHEET_MAX_H = Dimensions.get('window').height * 0.88;
 import type { LevelId } from '../utils/storage';
 import { loadFavorites, toggleFavorite } from '../utils/storage';
 import type { WordEntry } from '../data/wordBank';
@@ -132,7 +134,7 @@ const styles = StyleSheet.create({
   sheet: {
     backgroundColor: C.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    maxHeight: '88%', paddingBottom: 32,
+    maxHeight: SHEET_MAX_H, paddingBottom: 32,
     borderTopWidth: 1, borderColor: C.border,
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,

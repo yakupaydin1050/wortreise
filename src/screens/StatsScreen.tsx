@@ -342,7 +342,7 @@ export default function StatsScreen() {
                   <View style={styles.modalEmpty}>
                     <Text style={styles.modalEmptyText}>
                       {activeModal?.type === 'mastered'
-                        ? 'Henüz öğrenilen kelime yok.\nBir kelimeyi 5 kez doğru yapınca buraya gelir.'
+                        ? 'Henüz öğrenilen kelime yok.\nBir kelimeyi 3 kez doğru yapınca buraya gelir.'
                         : 'Harika! Tekrar çalışılacak kelime yok.'}
                     </Text>
                   </View>

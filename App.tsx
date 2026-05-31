@@ -1,6 +1,6 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -109,6 +109,12 @@ function TabBarDivider() {
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  // On some Android devices with edgeToEdgeEnabled, insets.bottom is incorrectly
+  // reported as 0 even when a navigation bar exists. Use a minimum floor so
+  // tab labels are never hidden behind the system navigation bar.
+  const bottomInset = Platform.OS === 'android'
+    ? Math.max(insets.bottom, 24)
+    : insets.bottom;
   return (
     <Tab.Navigator
       screenOptions={{
@@ -121,9 +127,9 @@ function MainTabs() {
           borderTopColor: '#B8C4E8',
           borderTopWidth: 1.5,
           elevation: 8,
-          height: 60 + insets.bottom,
-          paddingBottom: insets.bottom + 6,
-          paddingTop: 8,
+          height: 64 + bottomInset,
+          paddingBottom: bottomInset + 8,
+          paddingTop: 6,
         },
         tabBarItemStyle: {
           paddingTop: 0,

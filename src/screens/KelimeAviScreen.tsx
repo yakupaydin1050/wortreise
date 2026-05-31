@@ -859,8 +859,8 @@ const styles = StyleSheet.create({
   reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
 
   gameBody: {
-    flex: 1, alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28,
+    flex: 1, alignItems: 'center', justifyContent: 'flex-start',
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, gap: 16,
   },
   notchRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   notch: {
@@ -880,12 +880,12 @@ const styles = StyleSheet.create({
   lapBadgeText: { fontSize: 11, fontWeight: '800', color: C.warning },
 
   streakDisplay: { alignItems: 'center', gap: 2 },
-  streakNum: { fontSize: 52, fontWeight: '900', color: C.text, letterSpacing: -2 },
+  streakNum: { fontSize: 44, fontWeight: '900', color: C.text, letterSpacing: -2 },
   streakLabel: { fontSize: 13, fontWeight: '600', color: C.textFaint, letterSpacing: 1.5 },
 
   wordCard: {
-    width: '100%', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 22,
+    width: '100%', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 17,
     borderRadius: 20, borderWidth: 2,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
@@ -898,8 +898,8 @@ const styles = StyleSheet.create({
   optionRow: { flexDirection: 'row', gap: 10 },
   optionBtn: {
     flex: 1, borderWidth: 2, borderRadius: 16,
-    paddingVertical: 20, paddingHorizontal: 10,
-    alignItems: 'center', justifyContent: 'center', minHeight: 72,
+    paddingVertical: 16, paddingHorizontal: 10,
+    alignItems: 'center', justifyContent: 'center', minHeight: 62,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },

@@ -694,8 +694,8 @@ const styles = StyleSheet.create({
   startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
 
   gameBody: {
-    flex: 1, alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40,
+    flex: 1, alignItems: 'center', justifyContent: 'flex-start',
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16, gap: 16,
   },
   notchRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   notch: {
@@ -714,11 +714,11 @@ const styles = StyleSheet.create({
   },
   lapBadgeText: { fontSize: 11, fontWeight: '800', color: C.warning },
   streakDisplay: { alignItems: 'center', gap: 2 },
-  streakNum: { fontSize: 56, fontWeight: '900', color: C.text, letterSpacing: -2 },
+  streakNum: { fontSize: 46, fontWeight: '900', color: C.text, letterSpacing: -2 },
   streakLabel: { fontSize: 13, fontWeight: '600', color: C.textFaint, letterSpacing: 1.5 },
   wordCard: {
-    width: '100%', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 28,
+    width: '100%', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 20,
     borderRadius: 20, borderWidth: 2,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', gap: 10, width: '100%' },
   artBtn: {
     flex: 1, borderWidth: 2, borderRadius: 18,
-    paddingVertical: 26, alignItems: 'center',
+    paddingVertical: 18, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
