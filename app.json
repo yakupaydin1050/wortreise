@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "lernspiel",
+    "name": "Wortreise",
     "slug": "lernspiel",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,7 +13,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yakup.wortreise",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Günlük kelime hatırlatmaları için bildirim gönderiyoruz.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -36,6 +42,12 @@
           "defaultChannel": "default"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "349e1d1e-a006-438c-b8e8-1bab6c790905"
+      }
+    },
+    "owner": "yakupaydin"
   }
 }

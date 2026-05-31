@@ -66,14 +66,14 @@ export default function StatsScreen() {
           onPress={() => setTab('stats')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabBtnText, tab === 'stats' && styles.tabBtnTextActive]}>İstatistik</Text>
+          <Text style={[styles.tabBtnText, tab === 'stats' && styles.tabBtnTextActive]}>📊  İstatistik</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'words' && styles.tabBtnActive]}
           onPress={() => setTab('words')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabBtnText, tab === 'words' && styles.tabBtnTextActive]}>Kelimeler</Text>
+          <Text style={[styles.tabBtnText, tab === 'words' && styles.tabBtnTextActive]}>📚  Kelimeler</Text>
         </TouchableOpacity>
       </View>
 
@@ -384,12 +384,17 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   tabBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
     backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
   },
-  tabBtnActive: { backgroundColor: C.primaryBg, borderColor: C.primary },
+  tabBtnActive: {
+    backgroundColor: C.primary, borderColor: C.primary,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
+  },
   tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  tabBtnTextActive: { color: C.primary },
+  tabBtnTextActive: { color: '#FFFFFF', fontWeight: '800' },
   container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 24 },
 
   section: { gap: 10 },

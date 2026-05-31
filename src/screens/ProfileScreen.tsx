@@ -239,14 +239,14 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           onPress={() => setTab('profile')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabBtnText, tab === 'profile' && styles.tabBtnTextActive]}>Profil</Text>
+          <Text style={[styles.tabBtnText, tab === 'profile' && styles.tabBtnTextActive]}>👤  Profil</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'settings' && styles.tabBtnActive]}
           onPress={() => setTab('settings')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabBtnText, tab === 'settings' && styles.tabBtnTextActive]}>Ayarlar</Text>
+          <Text style={[styles.tabBtnText, tab === 'settings' && styles.tabBtnTextActive]}>⚙️  Ayarlar</Text>
         </TouchableOpacity>
       </View>
 
@@ -606,14 +606,17 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   tabBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
     backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
   },
   tabBtnActive: {
-    backgroundColor: C.primaryBg, borderColor: C.primary,
+    backgroundColor: C.primary, borderColor: C.primary,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
   },
   tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  tabBtnTextActive: { color: C.primary },
+  tabBtnTextActive: { color: '#FFFFFF', fontWeight: '800' },
   container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 16 },
 
   heroCard: {

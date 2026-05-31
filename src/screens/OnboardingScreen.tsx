@@ -234,7 +234,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
               activeOpacity={0.85}
             >
               <Text style={styles.slideBtnText}>
-                {slideIndex === SLIDES.length - 1 ? 'Hadi başlayalım →' : 'İleri →'}
+                {slideIndex === SLIDES.length - 1 ? 'Haydi başlayalım →' : 'İleri →'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -3713,8 +3713,8 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'selbst-1',
       targetWord: 'selbst',
-      german: 'Du musst mir değil yardım etmek, ich mache das selbst.',
-      germanWithBlank: 'Du musst mir değil yardım etmek, ich mache das ___.',
+      german: 'Du musst mir nicht helfen, ich mache das selbst.',
+      germanWithBlank: 'Du musst mir nicht helfen, ich mache das ___.',
       translationTR: 'Bana yardım etmene gerek yok, kendim yaparım.',
       translationEN: '',
     }],
