@@ -22,6 +22,7 @@
       }
     },
     "android": {
+      "package": "com.yaay.wortreise",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
