@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadStats } from './src/utils/storage';
 import { setupNotificationHandler, setupAndroidChannel, refreshStreakNotification } from './src/utils/notifications';
 import { loadAndApplyHapticsPreference } from './src/utils/haptics';
+import { loadAndApplySoundPreference } from './src/utils/sound';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
@@ -185,6 +186,7 @@ export default function App() {
     setupNotificationHandler();
     setupAndroidChannel();
     loadAndApplyHapticsPreference();
+    loadAndApplySoundPreference();
     AsyncStorage.getItem('@lernspiel_profile').then(val => {
       setHasProfile(val !== null);
       if (val !== null) {

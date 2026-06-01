@@ -18,6 +18,7 @@ import {
   scheduleDailyNotif, cancelDailyNotif, NotifPrefs, NOTIF_TIME_PRESETS,
 } from '../utils/notifications';
 import { saveHapticsEnabled, getHapticsEnabled } from '../utils/haptics';
+import { saveSoundEnabled, getSoundEnabled } from '../utils/sound';
 
 const AVATARS = [
   '👨', '👩', '🧑', '👦', '👧', '👴', '👵', '🧔',
@@ -71,6 +72,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [policyLang, setPolicyLang] = useState<PolicyLang>('tr');
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({ enabled: false, hour: 20, minute: 0 });
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [tab, setTab] = useState<'profile' | 'settings'>('profile');
 
   function openPolicy(type: PolicyType) {
@@ -85,6 +87,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         setStats(s);
         setNotifPrefs(n);
         setHapticsEnabled(getHapticsEnabled());
+        setSoundEnabled(getSoundEnabled());
       });
     }, []),
   );
@@ -119,6 +122,11 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   async function handleHapticsToggle(val: boolean) {
     setHapticsEnabled(val);
     await saveHapticsEnabled(val);
+  }
+
+  async function handleSoundToggle(val: boolean) {
+    setSoundEnabled(val);
+    await saveSoundEnabled(val);
   }
 
   async function handleNotifTimeChange(hour: number, minute: number) {
@@ -397,6 +405,22 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                       onValueChange={handleHapticsToggle}
                       trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
                       thumbColor={hapticsEnabled ? C.primary : C.textFaint}
+                    />
+                  </View>
+                  <View style={{ height: 1, backgroundColor: C.border }} />
+                  <View style={styles.notifToggleRow}>
+                    <View style={styles.notifIconWrap}>
+                      <Text style={styles.notifIcon}>🔊</Text>
+                    </View>
+                    <View style={styles.notifTextWrap}>
+                      <Text style={styles.notifTitle}>Ses</Text>
+                      <Text style={styles.notifSub}>Doğru cevaplarda ses efekti</Text>
+                    </View>
+                    <Switch
+                      value={soundEnabled}
+                      onValueChange={handleSoundToggle}
+                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
+                      thumbColor={soundEnabled ? C.primary : C.textFaint}
                     />
                   </View>
                   <View style={{ height: 1, backgroundColor: C.border }} />
