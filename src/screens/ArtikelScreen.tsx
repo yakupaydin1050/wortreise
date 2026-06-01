@@ -14,7 +14,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
-import { playCorrectSound, preloadSounds } from '../utils/sound';
+import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_artikel_best_${lvl}`;
 const TIMER_SECONDS = 8;
@@ -115,7 +115,6 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   const wordScale = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const timerAnim = useRef(new Animated.Value(1)).current;
-  const correctFlash = useRef(new Animated.Value(0)).current;
 
   const currentWord = words[wordIdx % words.length];
   currentWordRef.current = currentWord ?? null;
@@ -239,15 +238,9 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
 
     if (tapped === correct) {
       setHistory(prev => [...prev, { word: currentWord, type: 'correct' }]);
-      Animated.parallel([
-        Animated.sequence([
-          Animated.spring(wordScale, { toValue: 1.12, useNativeDriver: true, speed: 60, bounciness: 8 }),
-          Animated.spring(wordScale, { toValue: 1, useNativeDriver: true, speed: 25, bounciness: 0 }),
-        ]),
-        Animated.sequence([
-          Animated.timing(correctFlash, { toValue: 1, duration: 80, useNativeDriver: true }),
-          Animated.timing(correctFlash, { toValue: 0, duration: 320, useNativeDriver: true }),
-        ]),
+      Animated.sequence([
+        Animated.spring(wordScale, { toValue: 1.12, useNativeDriver: true, speed: 60, bounciness: 8 }),
+        Animated.spring(wordScale, { toValue: 1, useNativeDriver: true, speed: 25, bounciness: 0 }),
       ]).start();
       playCorrectSound();
       streakRef.current += 1;
@@ -263,6 +256,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
       ]).start();
+      playWrongSound();
       triggerHaptic(Haptics.NotificationFeedbackType.Error);
       setFeedback('wrong');
       advance(false, 1500);
@@ -631,21 +625,12 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
         </View>
       </View>
 
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.correctFlashOverlay, { opacity: correctFlash }]}
-      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'rgba(236,72,153,0.07)' },
-  correctFlashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#22C55E',
-    opacity: 0,
-  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,

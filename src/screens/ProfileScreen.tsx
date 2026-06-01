@@ -414,7 +414,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                     </View>
                     <View style={styles.notifTextWrap}>
                       <Text style={styles.notifTitle}>Ses</Text>
-                      <Text style={styles.notifSub}>Doğru cevaplarda ses efekti</Text>
+                      <Text style={styles.notifSub}>Doğru/yanlış cevaplarda ses efekti</Text>
                     </View>
                     <Switch
                       value={soundEnabled}
