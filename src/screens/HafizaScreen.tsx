@@ -15,6 +15,7 @@ import GridBackground from '../components/GridBackground';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
+import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type Difficulty = '4x3' | '4x4';
@@ -303,6 +304,8 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
 
   const matchedCount = cards.filter(c => c.isMatched).length;
 
+  useEffect(() => { preloadSounds(); }, []);
+
   useEffect(() => {
     if (phase !== 'playing' || matchedCount < pairCount * 2) return;
     setCompletedTime(timeRef.current);
@@ -368,6 +371,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
         setLocked(true);
 
         if (firstCard.pairId === card.pairId) {
+          playCorrectSound();
           triggerHaptic(Haptics.NotificationFeedbackType.Success);
           setCelebratePair({ pairId: card.pairId, color: card.color });
           setTimeout(() => {
@@ -378,6 +382,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
             setTimeout(() => setCelebratePair(null), 700);
           }, 500);
         } else {
+          playWrongSound();
           triggerHaptic(Haptics.NotificationFeedbackType.Error);
           setTimeout(() => {
             setCards(p => p.map(c =>
