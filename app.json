@@ -38,6 +38,9 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
+    "experiments": {
+      "baseUrl": "/wortreise"
+    },
     "plugins": [
       [
         "expo-notifications",
