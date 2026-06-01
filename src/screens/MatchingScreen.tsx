@@ -13,6 +13,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
+import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAIR_COUNT = 10;
@@ -107,6 +108,8 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
   const matchedCount = matchedIds.size;
   const isComplete = matchedCount === PAIR_COUNT;
 
+  useEffect(() => { preloadSounds(); }, []);
+
   useEffect(() => {
     if (phase !== 'playing' || timerMode === 0) return;
     timeLeftRef.current = timerMode;
@@ -158,10 +161,12 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
     if (matchedIds.has(id) || wrongPair) return;
     if (!selectedLeftId) return;
     if (id === selectedLeftId) {
+      playCorrectSound();
       triggerHaptic(Haptics.NotificationFeedbackType.Success);
       setMatchedIds(prev => new Set([...prev, id]));
       setSelectedLeftId(null);
     } else {
+      playWrongSound();
       triggerHaptic(Haptics.NotificationFeedbackType.Error);
       setWrongPair({ left: selectedLeftId, right: id });
       shake();
