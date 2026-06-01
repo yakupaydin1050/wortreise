@@ -15,6 +15,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
+import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_hunt_best_${lvl}`;
 const TIMER_SECONDS = 6;
@@ -123,6 +124,8 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const currentOptions = useMemo(() => currentWord ? buildOptions(currentWord, allWords) : [], [currentWord?.id, allWords]);
+
+  useEffect(() => { preloadSounds(); }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(getBestKey(level)).then(v => setBest(v ? JSON.parse(v) : null));
@@ -248,6 +251,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
       ]).start();
       streakRef.current += 1;
       setStreak(streakRef.current);
+      playCorrectSound();
       triggerHaptic(Haptics.NotificationFeedbackType.Success);
       setFeedback('correct');
       advance(true, 900);
@@ -259,6 +263,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
         Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
       ]).start();
+      playWrongSound();
       triggerHaptic(Haptics.NotificationFeedbackType.Error);
       setFeedback('wrong');
       advance(false, 1500);
