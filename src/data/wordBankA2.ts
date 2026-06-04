@@ -1958,8 +1958,8 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'leihen-1',
       targetWord: 'leihen',
-      german: 'Kannst du mir beş Euro leihen?',
-      germanWithBlank: 'Kannst du mir beş Euro ___?',
+      german: 'Kannst du mir fünf Euro leihen?',
+      germanWithBlank: 'Kannst du mir fünf Euro ___?',
       translationTR: 'Bana beş Euro ödünç verebilir misin?',
       translationEN: '',
     }],
