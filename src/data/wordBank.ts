@@ -14625,7 +14625,7 @@ export const wordBank: WordEntry[] = [
     sentences: [
       {
         id: 'fliegen-1',
-        targetWord: 'fliegen',
+        targetWord: 'fliege',
         german: 'Ich fliege morgen nach Berlin.',
         germanWithBlank: 'Ich ___ morgen nach Berlin.',
         translationTR: 'Yarın Berlin\'e uçuyorum.',

@@ -8,6 +8,10 @@ const C = {
   border: '#DDE3F5', borderBright: '#B8C4E8',
   primary: '#3B5BDB', primaryBg: 'rgba(59,91,219,0.10)',
   text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
+  headerBg: '#111C32',
+  headerTitle: '#E8F0FB',
+  headerSub: '#6B82A0',
+  headerBorder: 'rgba(255,255,255,0.07)',
 };
 
 const GAMES = [
@@ -60,41 +64,43 @@ const GAMES = [
 export default function OyunlarScreen({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Oyunlar</Text>
         <Text style={styles.headerSub}>Bilgini pekiştir, rekorunu kır</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {GAMES.map(g => (
-          <TouchableOpacity
-            key={g.key}
-            style={[styles.card, {
-              backgroundColor: g.colorBg,
-              borderColor: g.colorBorder,
-              borderLeftColor: g.color,
-              shadowColor: g.color,
-            }]}
-            onPress={() => navigation.navigate(g.key)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardTitleRow}>
-                <View style={[styles.cardIconBox, { backgroundColor: g.iconBg }]}>
-                  <Text style={styles.cardIconText}>{g.icon}</Text>
+      <View style={styles.body}>
+        <GridBackground />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          {GAMES.map(g => (
+            <TouchableOpacity
+              key={g.key}
+              style={[styles.card, {
+                backgroundColor: g.colorBg,
+                borderColor: g.colorBorder,
+                borderLeftColor: g.color,
+                shadowColor: g.color,
+              }]}
+              onPress={() => navigation.navigate(g.key)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.cardTitleRow}>
+                  <View style={[styles.cardIconBox, { backgroundColor: g.iconBg }]}>
+                    <Text style={styles.cardIconText}>{g.icon}</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>{g.title}</Text>
                 </View>
-                <Text style={styles.cardTitle}>{g.title}</Text>
               </View>
-            </View>
-            <Text style={styles.cardDesc}>{g.desc}</Text>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardMeta}>{g.meta}</Text>
-              <Text style={[styles.cardArrow, { color: g.color }]}>→</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text style={styles.cardDesc}>{g.desc}</Text>
+              <View style={styles.cardFooter}>
+                <Text style={styles.cardMeta}>{g.meta}</Text>
+                <Text style={[styles.cardArrow, { color: g.color }]}>→</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -109,6 +115,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
   headerSub: { fontSize: 13, color: C.textDim, marginTop: 3, fontWeight: '500', letterSpacing: 0.1 },
 
+  body: { flex: 1, backgroundColor: C.bg },
   container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 12 },
 
   card: {

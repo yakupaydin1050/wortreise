@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadStats } from './src/utils/storage';
 import { setupNotificationHandler, setupAndroidChannel, refreshStreakNotification } from './src/utils/notifications';
 import { loadAndApplyHapticsPreference } from './src/utils/haptics';
-import { loadAndApplySoundPreference } from './src/utils/sound';
+import { loadAndApplySoundPreference, preloadSounds } from './src/utils/sound';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
@@ -100,10 +100,11 @@ function PersonIcon({ color }: { color: string }) {
   );
 }
 
-function TabBarDivider() {
+// Dark RPG tab bar background with a subtle gold top rule
+function TabBarBackground() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'flex-end' }}>
-      <View style={{ height: 1.5, backgroundColor: '#B8C4E8' }} />
+    <View style={{ flex: 1, backgroundColor: '#111C32', justifyContent: 'flex-end' }}>
+      <View style={{ height: 1, backgroundColor: 'rgba(245,166,35,0.22)' }} />
     </View>
   );
 }
@@ -120,14 +121,14 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#3B5BDB',
-        tabBarInactiveTintColor: '#8896B8',
-        tabBarBackground: () => <TabBarDivider />,
+        tabBarActiveTintColor: '#F5A623',
+        tabBarInactiveTintColor: '#3A4465',
+        tabBarBackground: () => <TabBarBackground />,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#B8C4E8',
-          borderTopWidth: 1.5,
-          elevation: 8,
+          backgroundColor: '#111C32',
+          borderTopColor: 'rgba(245,166,35,0.22)',
+          borderTopWidth: 1,
+          elevation: 12,
           height: 64 + bottomInset,
           paddingBottom: bottomInset + 8,
           paddingTop: 6,
@@ -186,7 +187,7 @@ export default function App() {
     setupNotificationHandler();
     setupAndroidChannel();
     loadAndApplyHapticsPreference();
-    loadAndApplySoundPreference();
+    loadAndApplySoundPreference().then(() => preloadSounds());
     AsyncStorage.getItem('@lernspiel_profile').then(val => {
       setHasProfile(val !== null);
       if (val !== null) {
@@ -197,8 +198,8 @@ export default function App() {
 
   if (hasProfile === null) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FE' }}>
-        <ActivityIndicator size="large" color="#3B5BDB" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111C32' }}>
+        <ActivityIndicator size="large" color="#F5A623" />
       </View>
     );
   }

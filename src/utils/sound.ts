@@ -28,6 +28,7 @@ export function getSoundEnabled(): boolean {
 
 export async function preloadSounds(): Promise<void> {
   if (Platform.OS === 'web') return;
+  if (_correctSound && _wrongSound) return;
   try {
     await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
     const [c, w] = await Promise.all([
@@ -36,9 +37,7 @@ export async function preloadSounds(): Promise<void> {
     ]);
     _correctSound = c.sound;
     _wrongSound = w.sound;
-  } catch {
-    // ses yüklenemezse sessizce devam et
-  }
+  } catch {}
 }
 
 export function playCorrectSound(): void {

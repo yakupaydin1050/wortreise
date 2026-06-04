@@ -2,11 +2,11 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal,
-  Animated, Dimensions,
+  Animated, Dimensions, Image,
 } from 'react-native';
 
 const SCREEN_W = Dimensions.get('window').width;
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveProfile } from '../utils/storage';
 import GridBackground from '../components/GridBackground';
 import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
@@ -30,6 +30,7 @@ const C = {
 const SLIDES = [
   {
     emoji: '🇩🇪',
+    image: require('../../assets/icon.png') as number,
     title: 'Schritt für Schritt',
     subtitle: 'Almancayı adım adım öğren',
     desc: 'Her gün küçük bir adım. Günlük kartlar, eğlenceli oyunlar ve streak takibiyle Almanca öğrenmek artık çok daha kolay.',
@@ -108,6 +109,7 @@ const AVATARS = [
 
 
 export default function OnboardingScreen({ navigation }: { navigation: any }) {
+  const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<'slides' | 'setup'>('slides');
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideAreaHeight, setSlideAreaHeight] = useState(0);
@@ -192,7 +194,10 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
                   styles.slideIconCard,
                   { backgroundColor: s.accent + '18', borderColor: s.accent + '55' },
                 ]}>
-                  <Text style={styles.slideEmoji}>{s.emoji}</Text>
+                  {'image' in s && s.image
+                    ? <Image source={s.image} style={styles.slideAppIcon} />
+                    : <Text style={styles.slideEmoji}>{s.emoji}</Text>
+                  }
                 </View>
 
                 <Text style={styles.slideTitle}>{s.title}</Text>
@@ -456,12 +461,12 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
             <Text style={styles.sheetTitle}>{POLICY_CONTENT[policyType][policyLang].title}</Text>
 
-            <View>
+            <ScrollView style={styles.policyScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.policyBody}>{POLICY_CONTENT[policyType][policyLang].body}</Text>
-            </View>
+            </ScrollView>
 
             <TouchableOpacity
-              style={styles.policyCloseBtn}
+              style={[styles.policyCloseBtn, { marginBottom: Math.max(insets.bottom, 16) }]}
               onPress={() => setPolicyVisible(false)}
               activeOpacity={0.8}
             >
@@ -512,6 +517,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   slideEmoji: { fontSize: 72, lineHeight: 88 },
+  slideAppIcon: { width: 104, height: 104, borderRadius: 24 },
   slideTitle: {
     fontSize: 26, fontWeight: '800', color: C.text,
     textAlign: 'center', letterSpacing: 0.1,
@@ -676,12 +682,13 @@ const styles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: C.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 0,
     maxHeight: '88%',
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
     borderTopWidth: 1, borderColor: C.border,
   },
+  policyScroll: { flexGrow: 0 },
   sheetHandle: {
     width: 40, height: 4, borderRadius: 2,
     backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
