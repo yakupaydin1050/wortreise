@@ -174,9 +174,13 @@ export default function SentenceRow({
         <View style={styles.translationRow}>
           <TouchableOpacity
             onPress={() => setShowTranslation(v => !v)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={[styles.trButton, showTranslation && styles.trButtonActive]}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.trFlag, showTranslation && styles.trFlagActive]}>🇹🇷</Text>
+            <Text style={styles.trFlag}>🇹🇷</Text>
+            <Text style={[styles.trButtonText, showTranslation && styles.trButtonTextActive]}>
+              {showTranslation ? 'Gizle' : 'Çeviri'}
+            </Text>
           </TouchableOpacity>
           {showTranslation && (
             <Text style={styles.translationInline} numberOfLines={2}>
@@ -242,8 +246,31 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.07)',
   },
-  trFlag: { fontSize: 20, opacity: 0.45 },
-  trFlagActive: { opacity: 1 },
+  trButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59,91,219,0.2)',
+    backgroundColor: 'rgba(59,91,219,0.05)',
+  },
+  trButtonActive: {
+    borderColor: 'rgba(59,91,219,0.4)',
+    backgroundColor: 'rgba(59,91,219,0.12)',
+  },
+  trFlag: { fontSize: 16 },
+  trButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.2,
+  },
+  trButtonTextActive: {
+    color: '#3B5BDB',
+  },
   translationInline: {
     flex: 1, fontSize: 13, color: '#4E5C80',
     fontWeight: '500', lineHeight: 19,

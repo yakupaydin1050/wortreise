@@ -11,7 +11,6 @@ import {
   resetStats, resetProgress, resetGameStats, resetAchievements,
   UserProfile, AppStats, getCharacter,
 } from '../utils/storage';
-import * as StoreReview from 'expo-store-review';
 import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
 import {
   loadNotifPrefs, saveNotifPrefs, requestNotifPermission, getNotifPermissionStatus,
@@ -182,32 +181,34 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     );
   }
 
+  const IOS_REVIEW_URL  = 'https://apps.apple.com/app/id6774772723?action=write-review';
+  const IOS_APP_URL     = 'https://apps.apple.com/app/id6774772723';
+  const ANDROID_MARKET  = 'market://details?id=com.yaay.wortreise';
+  const ANDROID_WEB_URL = 'https://play.google.com/store/apps/details?id=com.yaay.wortreise';
+
   async function handleReview() {
-    if (Platform.OS === 'web') {
-      Linking.openURL('https://wortreise.app');
-      return;
-    }
-    const available = await StoreReview.isAvailableAsync();
-    if (available) {
-      await StoreReview.requestReview();
-    } else {
-      Alert.alert(
-        'Uygulamayı Değerlendir',
-        'Değerlendirme yapmak için uygulama mağazasına yönlendirileceksiniz.',
-        [
-          { text: 'Vazgeç', style: 'cancel' },
-          { text: 'Git', onPress: () => Linking.openURL('https://wortreise.app') },
-        ],
-      );
+    try {
+      if (Platform.OS === 'ios') {
+        await Linking.openURL(IOS_REVIEW_URL);
+      } else if (Platform.OS === 'android') {
+        const opened = await Linking.canOpenURL(ANDROID_MARKET);
+        await Linking.openURL(opened ? ANDROID_MARKET : ANDROID_WEB_URL);
+      } else {
+        await Linking.openURL(IOS_APP_URL);
+      }
+    } catch {
+      Alert.alert('Hata', 'Mağaza açılamadı.');
     }
   }
 
   function handleShare() {
-    Share.share({
-      message:
-        'Wortreise\'yi denedin mi? 🇩🇪\n\nAlmanca kelimeler, eşleştirme oyunları ve hafıza kartlarıyla günde birkaç dakikada Almanca öğrenebiliyorsun.\n\nHemen indir, birlikte öğrenelim! 🚀',
-      title: 'Wortreise — Almanca Öğren',
-    });
+    const shareMsg =
+      'Wortreise\'yi denedin mi? 🇩🇪\n\nAlmanca kelimeler, eşleştirme oyunları ve hafıza kartlarıyla günde birkaç dakikada Almanca öğrenebiliyorsun.\n\nHemen indir, birlikte öğrenelim! 🚀';
+    Share.share(
+      Platform.OS === 'ios'
+        ? { message: shareMsg, url: IOS_APP_URL, title: 'Wortreise — Almanca Öğren' }
+        : { message: `${shareMsg}\n${ANDROID_WEB_URL}`, title: 'Wortreise — Almanca Öğren' },
+    );
   }
 
   function handleLogout() {

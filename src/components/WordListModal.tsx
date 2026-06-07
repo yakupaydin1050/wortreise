@@ -7,7 +7,7 @@ import {
 const SHEET_MAX_H = Dimensions.get('window').height * 0.88;
 import type { LevelId } from '../utils/storage';
 import { loadFavorites, toggleFavorite } from '../utils/storage';
-import type { WordEntry } from '../data/wordBank';
+import type { WordEntry } from '../data/wordBankA1';
 
 const C = {
   bg: '#FAF8F4', surface: '#FFFFFF', surface2: '#EEF1FF',

@@ -1,4 +1,4 @@
-import type { WordEntry } from './wordBank';
+import type { WordEntry } from './wordBankA1';
 
 export const wordBankA2: WordEntry[] = [
   {
@@ -60,8 +60,8 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'anbieten-1',
       targetWord: 'anbieten',
-      german: 'Darf ich Ihnen bir Stück Kuchen anbieten?',
-      germanWithBlank: 'Darf ich Ihnen bir Stück Kuchen ___?',
+      german: 'Darf ich Ihnen ein Stück Kuchen anbieten?',
+      germanWithBlank: 'Darf ich Ihnen ein Stück Kuchen ___?',
       translationTR: 'Size bir dilim pasta ikram edebilir miyim?',
       translationEN: '',
     }],
@@ -107,8 +107,8 @@ export const wordBankA2: WordEntry[] = [
   },
   {
     id: 'anmelden',
-    word: 'anmelden',
-    tr: 'kaydolmak',
+    word: 'anmelden (sich)',
+    tr: 'kaydolmak; (birini/bir şeyi) bildirmek, kayıt ettirmek',
     sentences: [{
       id: 'anmelden-1',
       targetWord: 'anmelden',
@@ -159,7 +159,7 @@ export const wordBankA2: WordEntry[] = [
   },
   {
     id: 'aerger-sich',
-    word: 'ärger (sich)',
+    word: 'ärgern (sich)',
     tr: 'kızmak',
     sentences: [{
       id: 'aerger-sich-1',
@@ -202,9 +202,9 @@ export const wordBankA2: WordEntry[] = [
     tr: 'dikkat etmek',
     sentences: [{
       id: 'aufpassen-1',
-      targetWord: 'Pass',
+      targetWord: 'auf',
       german: 'Pass auf, der Teller fällt gleich!',
-      germanWithBlank: '___ auf, der Teller fällt gleich!',
+      germanWithBlank: 'Pass ___, der Teller fällt gleich!',
       translationTR: 'Dikkat et, tabak şimdi düşecek!',
       translationEN: '',
     }],
@@ -215,9 +215,9 @@ export const wordBankA2: WordEntry[] = [
     tr: 'doldurmak (form vb.)',
     sentences: [{
       id: 'ausfuellen-1',
-      targetWord: 'Füllen',
+      targetWord: 'aus',
       german: 'Füllen Sie bitte dieses Formular aus!',
-      germanWithBlank: '___ Sie bitte dieses Formular aus!',
+      germanWithBlank: 'Füllen Sie bitte dieses Formular ___!',
       translationTR: 'Lütfen bu formu doldurun!',
       translationEN: '',
     }],
@@ -228,9 +228,9 @@ export const wordBankA2: WordEntry[] = [
     tr: 'dışarı çıkmak',
     sentences: [{
       id: 'ausgehen-1',
-      targetWord: 'Gehen',
+      targetWord: 'aus',
       german: 'Gehen wir am Freitag zusammen aus?',
-      germanWithBlank: '___ wir am Freitag zusammen aus?',
+      germanWithBlank: 'Gehen wir am Freitag zusammen ___?',
       translationTR: 'Cuma günü birlikte dışarı çıkalım mı?',
       translationEN: '',
     }],
@@ -241,9 +241,9 @@ export const wordBankA2: WordEntry[] = [
     tr: 'kapatmak (ışık vb.)',
     sentences: [{
       id: 'ausmachen-1',
-      targetWord: 'Mach',
+      targetWord: 'aus',
       german: 'Mach bitte das Licht aus!',
-      germanWithBlank: '___ bitte das Licht aus!',
+      germanWithBlank: 'Mach bitte das Licht ___!',
       translationTR: 'Lütfen ışığı kapat!',
       translationEN: '',
     }],
@@ -359,8 +359,8 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'besetzt-1',
       targetWord: 'besetzt',
-      german: 'İst dieser Platz frei? - Nein, er ist besetzt.',
-      germanWithBlank: 'İst dieser Platz frei? - Nein, er ist ___.',
+      german: 'Ist dieser Platz frei? - Nein, er ist besetzt.',
+      germanWithBlank: 'Ist dieser Platz frei? - Nein, er ist ___.',
       translationTR: 'Bu yer boş mu? - Hayır, dolu.',
       translationEN: '',
     }],
@@ -995,10 +995,10 @@ export const wordBankA2: WordEntry[] = [
     tr: 'cihaz / alet',
     sentences: [{
       id: 'das-geraet-e-1',
-      targetWord: 'Elektrogeräte',
-      german: 'Elektrogeräte finden Sie im dritten Stock.',
-      germanWithBlank: '___ finden Sie im dritten Stock.',
-      translationTR: 'Elektrikli aletleri üçüncü katta bulabilirsiniz.',
+      targetWord: 'Gerät',
+      german: 'Das Gerät funktioniert leider nicht mehr.',
+      germanWithBlank: 'Das ___ funktioniert leider nicht mehr.',
+      translationTR: 'Cihaz maalesef artık çalışmıyor.',
       translationEN: '',
     }],
   },
@@ -1186,13 +1186,13 @@ export const wordBankA2: WordEntry[] = [
   },
   {
     id: 'herstellen',
-    word: 'herstellen',
+    word: 'herstellen (stellt her)',
     tr: 'üretmek',
     sentences: [{
       id: 'herstellen-1',
-      targetWord: 'stellen',
+      targetWord: 'her',
       german: 'In unserer Firma stellen wir Möbel her.',
-      germanWithBlank: 'In unserer Firma ___ wir Möbel her.',
+      germanWithBlank: 'In unserer Firma stellen wir Möbel ___.',
       translationTR: 'Firmamızda mobilya üretiyoruz.',
       translationEN: '',
     }],
@@ -3423,7 +3423,7 @@ export const wordBankA2: WordEntry[] = [
   {
     id: 'der-schalter',
     word: 'der Schalter, -',
-    tr: 'gişe / şalter',
+    tr: 'gişe / vezne',
     sentences: [{
       id: 'der-schalter-1',
       targetWord: 'Schalter',
@@ -3998,9 +3998,9 @@ export const wordBankA2: WordEntry[] = [
     tr: 'ölmek',
     sentences: [{
       id: 'sterben-1',
-      targetWord: 'gestern',
+      targetWord: 'gestorben',
       german: 'Sein Vater ist gestern gestorben.',
-      germanWithBlank: 'Sein Vater ist ___ gestorben.',
+      germanWithBlank: 'Sein Vater ist gestern ___.',
       translationTR: 'Babası dün vefat etti.',
       translationEN: '',
     }],
@@ -4168,8 +4168,8 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'das-tablet-s-1',
       targetWord: 'Tablet',
-      german: 'Hast du bir Tablet?',
-      germanWithBlank: 'Hast du bir ___?',
+      german: 'Hast du ein Tablet?',
+      germanWithBlank: 'Hast du ein ___?',
       translationTR: 'Tabletin var mı?',
       translationEN: '',
     }],
@@ -4352,7 +4352,7 @@ export const wordBankA2: WordEntry[] = [
       targetWord: 'tot',
       german: 'Meine Großeltern sind schon lange tot.',
       germanWithBlank: 'Meine Großeltern sind schon lange ___.',
-      translationTR: 'Büyükannem ve büyükbabam uzun süredir ölü (vefat etmiş).',
+      translationTR: 'Büyükannem ve büyükbabam uzun süre önce vefat etti.',
       translationEN: '',
     }],
   },
@@ -5402,10 +5402,10 @@ export const wordBankA2: WordEntry[] = [
     tr: 'merkez',
     sentences: [{
       id: 'das-zentrum-en-1',
-      targetWord: 'Stadtzentrum',
-      german: 'Der Bahnhof ist im Stadtzentrum.',
+      targetWord: 'Zentrum',
+      german: 'Der Bahnhof ist im Zentrum.',
       germanWithBlank: 'Der Bahnhof ist im ___.',
-      translationTR: 'İstasyon şehir merkezindedir.',
+      translationTR: 'İstasyon merkezde.',
       translationEN: '',
     }],
   },

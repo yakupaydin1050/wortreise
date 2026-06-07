@@ -101,8 +101,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([]);
   const [achModalVisible, setAchModalVisible] = useState(false);
-  const [shareVisible, setShareVisible] = useState(false);
-  const shareRef = useRef<View>(null);
+  const shareRef = useRef<any>(null);
   const hasRecorded = useRef(false);
 
   useEffect(() => {
@@ -271,18 +270,9 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     }
   }
 
-  function buildFullSentence(germanWithBlank: string, word: string): string {
-    const parts = germanWithBlank.split('___');
-    if (parts.length < 2) return germanWithBlank;
-    const displayWord = parts[0] === '' ? word.charAt(0).toUpperCase() + word.slice(1) : word;
-    return parts[0] + displayWord + (parts[1] ?? '');
-  }
-
   async function captureAndShare() {
     try {
       const uri = await captureRef(shareRef, { format: 'png', quality: 0.95 });
-      setShareVisible(false);
-      await new Promise(r => setTimeout(r, 300));
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Wortreise Kartını Paylaş' });
@@ -290,7 +280,6 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         Alert.alert('Paylaşım Mevcut Değil', 'Bu cihazda paylaşım desteklenmiyor.');
       }
     } catch {
-      setShareVisible(false);
       Alert.alert('Hata', 'Paylaşım sırasında bir sorun oluştu.');
     }
   }
@@ -408,7 +397,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
           )}
           {phase === 'results' && (
             <>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)}>
+              <TouchableOpacity style={styles.actionBtn} onPress={captureAndShare}>
                 <Text style={styles.actionBtnText}>📤 Paylaş</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleRestart}>
@@ -506,58 +495,6 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         </View>
       )}
 
-      {/* Share modal */}
-      <Modal
-        visible={shareVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShareVisible(false)}
-      >
-        <View style={styles.shareOverlay}>
-          <View style={styles.shareModalWrap}>
-            <View ref={shareRef} collapsable={false} style={styles.shareCard}>
-              <View style={styles.shareCardHeader}>
-                <Text style={styles.shareCardFlag}>🇩🇪</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.shareCardAppName}>Wortreise</Text>
-                  <Text style={styles.shareCardTheme}>{card.theme}</Text>
-                </View>
-                <View style={styles.shareScoreBadge}>
-                  <Text style={styles.shareScoreBadgeText}>{solvedCount}/{total}</Text>
-                </View>
-              </View>
-              <View style={styles.shareCardDivider} />
-              {card.sentences.map(sentence => {
-                const slot = slots[sentence.id];
-                const correct = slot.isCorrect === true;
-                const usedWord = slot.filledWord ?? sentence.targetWord;
-                const fullSentence = buildFullSentence(sentence.germanWithBlank, usedWord);
-                return (
-                  <View key={sentence.id} style={[styles.shareSentRow, { borderLeftColor: correct ? '#1A9E6E' : '#DC2626' }]}>
-                    <Text style={[styles.shareSentMark, { color: correct ? '#1A9E6E' : '#DC2626' }]}>
-                      {correct ? '✓' : '✗'}
-                    </Text>
-                    <Text style={[styles.shareSentText, { color: correct ? '#1A2340' : '#DC2626' }]} numberOfLines={2}>
-                      {fullSentence}
-                    </Text>
-                  </View>
-                );
-              })}
-              <View style={styles.shareCardDivider} />
-              <Text style={styles.shareCardTagline}>Wortreise ile Almanca öğren! 🇩🇪</Text>
-            </View>
-            <View style={styles.shareActionRow}>
-              <TouchableOpacity style={styles.shareCancelBtn} onPress={() => setShareVisible(false)}>
-                <Text style={styles.shareCancelBtnText}>Kapat</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.shareConfirmBtn} onPress={captureAndShare}>
-                <Text style={styles.shareConfirmBtnText}>Paylaş 📤</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Achievement unlock modal */}
       <Modal
         visible={achModalVisible}
@@ -647,6 +584,58 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Off-screen share card — always rendered, captured when user presses Paylaş */}
+      <View
+        ref={shareRef}
+        collapsable={false}
+        pointerEvents="none"
+        style={styles.shareCapture}
+      >
+        <View style={styles.shareCaptureInner}>
+          <View style={styles.shareCaptureHeader}>
+            <Text style={styles.shareCaptureFlag}>🇩🇪</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.shareCaptureAppName}>Wortreise</Text>
+              <Text style={styles.shareCaptureTheme}>{card.theme}</Text>
+            </View>
+            <View style={styles.shareCaptureScore}>
+              <Text style={styles.shareCaptureScoreText}>{solvedCount}/{total}</Text>
+            </View>
+          </View>
+          <View style={styles.shareCaptureDivider} />
+          {card.sentences.map((sentence, idx) => {
+            const slot = slots[sentence.id];
+            const correct = slot.isCorrect === true;
+            const wrong = slot.isCorrect === false;
+            const unanswered = !slot.filledWord && slot.isCorrect === null;
+            const parts = sentence.germanWithBlank.split('___');
+            const rawWord = slot.filledWord;
+            const displayWord = rawWord
+              ? (parts[0] === '' ? rawWord.charAt(0).toUpperCase() + rawWord.slice(1) : rawWord)
+              : null;
+            const shownWord = displayWord ?? sentence.targetWord;
+            const accent = correct ? '#1A9E6E' : wrong ? '#DC2626' : '#8896B8';
+            const wordColor = correct ? '#1A9E6E' : wrong ? '#DC2626' : '#8896B8';
+            const bg = correct ? '#F0FAF6' : wrong ? '#FEF2F2' : '#F9FAFB';
+            const border = correct ? 'rgba(26,158,110,0.28)' : wrong ? 'rgba(220,38,38,0.22)' : 'rgba(100,116,139,0.18)';
+            return (
+              <View key={sentence.id} style={[styles.shareCaptureSent, { borderLeftColor: accent, backgroundColor: bg, borderColor: border }]}>
+                <View style={styles.shareCaptureSentRow}>
+                  <Text style={styles.shareCaptureSentNum}>{idx + 1}. </Text>
+                  <Text style={styles.shareCaptureSentText}>
+                    {parts[0]}
+                    <Text style={{ color: wordColor, fontWeight: '700' }}>{shownWord}</Text>
+                    {parts.length > 1 ? parts[1] : ''}
+                  </Text>
+                </View>
+                {wrong && <Text style={styles.shareCaptureSentCorr}>✓ {sentence.targetWord}</Text>}
+              </View>
+            );
+          })}
+          <View style={styles.shareCaptureDivider} />
+          <Text style={styles.shareCaptureTagline}>Wortreise ile Almanca öğren! 🇩🇪</Text>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -846,52 +835,52 @@ const styles = StyleSheet.create({
   reportSubmitText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   reportSubmitBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
 
-  // Share modal
-  shareOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
-    justifyContent: 'center', alignItems: 'center', padding: 20,
+  // Off-screen share card
+  shareCapture: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 10000,
+    padding: 16,
+    backgroundColor: '#F0F3FF',
   },
-  shareModalWrap: { width: '100%', maxWidth: 380, gap: 14 },
-  shareCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, gap: 10,
-    borderWidth: 1, borderColor: '#DDE3F5',
-    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 20, elevation: 8,
+  shareCaptureInner: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#DDE3F5',
+    shadowColor: '#3B5BDB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  shareCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  shareCardFlag: { fontSize: 26 },
-  shareCardAppName: { fontSize: 15, fontWeight: '800', color: '#1A2340', letterSpacing: 0.2 },
-  shareCardTheme: { fontSize: 11, fontWeight: '600', color: '#8896B8', letterSpacing: 0.5, marginTop: 1 },
-  shareScoreBadge: {
+  shareCaptureHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shareCaptureFlag: { fontSize: 28 },
+  shareCaptureAppName: { fontSize: 16, fontWeight: '800', color: '#1A2340', letterSpacing: 0.2 },
+  shareCaptureTheme: { fontSize: 12, fontWeight: '600', color: '#8896B8', letterSpacing: 0.4, marginTop: 1 },
+  shareCaptureScore: {
     backgroundColor: '#EEF1FF', borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 5,
     borderWidth: 1, borderColor: '#DDE3F5',
   },
-  shareScoreBadgeText: { fontSize: 15, fontWeight: '800', color: '#3B5BDB' },
-  shareCardDivider: { height: 1, backgroundColor: '#EEF1FF' },
-  shareSentRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    paddingLeft: 8, borderLeftWidth: 3,
+  shareCaptureScoreText: { fontSize: 16, fontWeight: '800', color: '#3B5BDB' },
+  shareCaptureDivider: { height: 1, backgroundColor: '#EEF1FF' },
+  shareCaptureSent: {
+    borderRadius: 12, borderLeftWidth: 4,
+    paddingLeft: 12, paddingRight: 14, paddingVertical: 11,
+    borderWidth: 1,
   },
-  shareSentMark: { fontSize: 13, fontWeight: '700', lineHeight: 20, width: 16 },
-  shareSentText: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 19 },
-  shareCardTagline: {
-    fontSize: 12, color: '#8896B8', fontWeight: '500',
+  shareCaptureSentRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' },
+  shareCaptureSentNum: { fontSize: 14, fontWeight: '800', color: '#0F172A', lineHeight: 22 },
+  shareCaptureSentText: { flex: 1, fontSize: 14, color: '#0F172A', lineHeight: 22, fontWeight: '500' },
+  shareCaptureSentCorr: { fontSize: 12, color: '#1A9E6E', fontWeight: '600', marginTop: 3 },
+  shareCaptureTagline: {
+    fontSize: 13, color: '#8896B8', fontWeight: '500',
     textAlign: 'center', letterSpacing: 0.2,
   },
-  shareActionRow: { flexDirection: 'row', gap: 10 },
-  shareCancelBtn: {
-    flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#DDE3F5', backgroundColor: '#FFFFFF',
-  },
-  shareCancelBtnText: { fontSize: 14, fontWeight: '700', color: '#4E5C80' },
-  shareConfirmBtn: {
-    flex: 2, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-    backgroundColor: '#3B5BDB',
-    shadowColor: '#3B5BDB', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
-  },
-  shareConfirmBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
 
   // Achievement modal
   achOverlay: {

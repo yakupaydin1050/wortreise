@@ -10,7 +10,7 @@ import { recordHafizaGame, shouldPromptReview } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
-import type { WordEntry } from '../data/wordBank';
+import type { WordEntry } from '../data/wordBankA1';
 import GridBackground from '../components/GridBackground';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';

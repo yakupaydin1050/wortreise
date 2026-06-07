@@ -5,9 +5,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getRandomWordPairs, WordPair, wordsByLevel } from '../data/generateCard';
-import { recordMatchingGame, addCoins, shouldPromptReview } from '../utils/storage';
+import {
+  recordMatchingGame, addCoins, shouldPromptReview,
+  loadStats, loadGameStats, loadAllProgress, loadUnlockedAchievements, unlockAchievements,
+} from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
+import { AchievementDef, checkNewAchievements } from '../data/achievements';
 import GridBackground from '../components/GridBackground';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -104,6 +108,8 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
   const [reportSending, setReportSending] = useState(false);
   const [reportSent, setReportSent] = useState(false);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([]);
+  const [achModalVisible, setAchModalVisible] = useState(false);
 
   const matchedCount = matchedIds.size;
   const isComplete = matchedCount === PAIR_COUNT;
@@ -135,11 +141,26 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
       if (timerRef.current) clearInterval(timerRef.current);
       setShowConfetti(true);
       const timeUsed = timerMode > 0 ? timerMode - timeLeftRef.current : 0;
-      recordMatchingGame(PAIR_COUNT, timeUsed);
-      addCoins(PAIR_COUNT * 3);
-      shouldPromptReview().then(yes => {
-        if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
-      });
+      (async () => {
+        await recordMatchingGame(PAIR_COUNT, timeUsed);
+        await addCoins(PAIR_COUNT * 3);
+        const [gs, allProgress, unlockedList, stats] = await Promise.all([
+          loadGameStats(),
+          loadAllProgress(),
+          loadUnlockedAchievements(),
+          loadStats(),
+        ]);
+        const masteredCount = Object.values(allProgress).reduce((sum, p) => sum + p.masteredIds.length, 0);
+        const newly = checkNewAchievements(stats, gs, masteredCount, unlockedList.map(u => u.id));
+        if (newly.length > 0) {
+          await unlockAchievements(newly.map(a => a.id));
+          setNewAchievements(newly);
+          setAchModalVisible(true);
+        }
+        shouldPromptReview().then(yes => {
+          if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+        });
+      })();
     }
   }, [isComplete]);
 
@@ -486,6 +507,28 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </Modal>
 
+      {/* Achievement unlock modal */}
+      <Modal visible={achModalVisible} transparent animationType="fade" onRequestClose={() => setAchModalVisible(false)}>
+        <View style={styles.achOverlay}>
+          <View style={styles.achSheet}>
+            <Text style={styles.achSheetTitle}>🏆 Rozet Kazandın!</Text>
+            <Text style={styles.achSheetSub}>Harika ilerleme!</Text>
+            {newAchievements.map(a => (
+              <View key={a.id} style={styles.achRow}>
+                <Text style={styles.achRowEmoji}>{a.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.achRowTitle}>{a.title}</Text>
+                  <Text style={styles.achRowDesc}>{a.desc}</Text>
+                </View>
+              </View>
+            ))}
+            <TouchableOpacity style={styles.achCloseBtn} onPress={() => setAchModalVisible(false)} activeOpacity={0.85}>
+              <Text style={styles.achCloseBtnText}>Harika! →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Report modal */}
       <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => !reportSending && setReportVisible(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -698,4 +741,33 @@ const styles = StyleSheet.create({
     width: 56, height: 56, textAlign: 'center', lineHeight: 56, overflow: 'hidden',
   },
   reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
+
+  // Achievement modal
+  achOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28,
+  },
+  achSheet: {
+    backgroundColor: C.surface, borderRadius: 24, padding: 24, gap: 14,
+    width: '100%',
+    borderWidth: 1, borderColor: 'rgba(124,58,237,0.28)',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 24, elevation: 10,
+  },
+  achSheetTitle: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', letterSpacing: 0.1 },
+  achSheetSub: { fontSize: 14, color: C.textDim, textAlign: 'center', fontWeight: '500', marginTop: -6 },
+  achRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)',
+  },
+  achRowEmoji: { fontSize: 34 },
+  achRowTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
+  achRowDesc: { fontSize: 12, color: C.textDim, fontWeight: '400', marginTop: 2 },
+  achCloseBtn: {
+    backgroundColor: '#7C3AED', borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28, shadowRadius: 12, elevation: 5, marginTop: 4,
+  },
+  achCloseBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
 });

@@ -340,19 +340,20 @@ export async function resetAchievements(): Promise<void> {
 
 // ─── Review prompt ────────────────────────────────────────────────────────────
 const REVIEW_KEY = '@lernspiel_review_shown';
-const REVIEW_THRESHOLD = 5; // toplam oyun sayısı
+const REVIEW_THRESHOLD = 2;
 
 export async function shouldPromptReview(): Promise<boolean> {
   try {
     const shown = await AsyncStorage.getItem(REVIEW_KEY);
     if (shown) return false;
-    const gs = await loadGameStats();
-    const allPlayed =
-      gs.artikel.sessions > 0 &&
-      gs.kelimeAvi.sessions > 0 &&
-      gs.eslestirme.sessions > 0 &&
-      gs.hafiza.sessions > 0;
-    if (allPlayed) {
+    const [gs, stats] = await Promise.all([loadGameStats(), loadStats()]);
+    const triggered =
+      gs.artikel.sessions   >= REVIEW_THRESHOLD ||
+      gs.kelimeAvi.sessions  >= REVIEW_THRESHOLD ||
+      gs.eslestirme.sessions >= REVIEW_THRESHOLD ||
+      gs.hafiza.sessions     >= REVIEW_THRESHOLD ||
+      stats.totalCards       >= REVIEW_THRESHOLD;
+    if (triggered) {
       await AsyncStorage.setItem(REVIEW_KEY, '1');
       return true;
     }

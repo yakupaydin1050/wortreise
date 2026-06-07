@@ -1,4 +1,4 @@
-import { wordBank, WordEntry } from './wordBank';
+import { wordBank, WordEntry } from './wordBankA1';
 import { wordBankA2 } from './wordBankA2';
 import { wordBankB1 } from './wordBankB1';
 import { Card } from '../types';
@@ -92,14 +92,18 @@ export function getRandomWordPairs(count = 10, level: LevelId = 'A1'): WordPair[
           const found = sentence.german.match(regex);
           if (found) displayDE = found[0];
         }
-        // Skip if the same dictionary form was already collected (e.g. mach + machst → machen)
-        if (seenDE.has(displayDE.toLowerCase())) continue;
-        seenDE.add(displayDE.toLowerCase());
         const rawTR = trans.trDict ?? trans.tr;
         const displayTR = rawTR
           ? rawTR.replace(/\s*\(o\/o\/o\)/g, '').replace(/,\s*o\/o\/o/g, '')
           : undefined;
-        if (displayTR) pairs.push({ german: displayDE, turkish: displayTR });
+        if (!displayTR) continue;
+        // Deduplicate by (bare German form + Turkish): same word with/without article is skipped,
+        // but genuinely different words that share a base form (e.g. arm/Arm) both pass through.
+        const normalizedDE = displayDE.replace(/^(der|die|das)\s+/i, '').toLowerCase();
+        const pairKey = `${normalizedDE}|${displayTR}`;
+        if (seenDE.has(pairKey)) continue;
+        seenDE.add(pairKey);
+        pairs.push({ german: displayDE, turkish: displayTR });
       }
     }
   }
@@ -116,9 +120,9 @@ export function getRandomWordPairs(count = 10, level: LevelId = 'A1'): WordPair[
 
     for (const p of shuffle(fallback)) {
       if (pairs.length >= count) break;
-      const key = p.german.toLowerCase();
-      if (seenDE.has(key)) continue;
-      seenDE.add(key);
+      const pairKey = `${p.german.toLowerCase()}|${p.turkish}`;
+      if (seenDE.has(pairKey)) continue;
+      seenDE.add(pairKey);
       pairs.push(p);
     }
   }

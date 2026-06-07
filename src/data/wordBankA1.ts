@@ -63,11 +63,9 @@ export const wordBank: WordEntry[] = [
         translationTR: 'Tren tam zamanında hareket etti.',
         translationEN: 'The train departed on time.',
         glossary: {
-          'wir': { tr: 'biz', en: 'we', de: 'wir' },
-          'fahren': { tr: 'gitmek (araçla)', en: 'travel/go', de: 'fahren' },
-          'um': { tr: 'saat ... -de (zaman)', en: 'at (time)', de: 'um' },
-          'zwölf': { tr: 'on iki (sayı)', en: 'twelve', de: 'zwölf' },
-          'uhr': { tr: 'saat', en: 'o\'clock', de: 'die Uhr' },
+          'zug': { tr: 'tren', en: 'train', de: 'der Zug' },
+          'ist': { tr: '-dır (yardımcı fiil)', en: 'is', de: 'sein' },
+          'pünktlich': { tr: 'tam zamanında', en: 'on time' },
         },
       },
     ],
@@ -469,7 +467,7 @@ export const wordBank: WordEntry[] = [
   {
     id: 'fahren',
     word: 'fahren',
-    tr: '(bilgisayarı) kapatmak',
+    tr: 'gitmek / sürmek (araçla)',
     sentences: [
       {
         id: 'fahren-1',
@@ -1505,7 +1503,7 @@ export const wordBank: WordEntry[] = [
   {
     id: 'kosten',
     word: 'kosten',
-    tr: 'masraflar / giderler',
+    tr: 'mal olmak / fiyatı ... olmak',
     sentences: [
       {
         id: 'kosten-1',
@@ -1606,7 +1604,7 @@ export const wordBank: WordEntry[] = [
       {
         id: 'öffnen-1',
         targetWord: 'öffnen',
-        german: 'Wann beginnt das Geschäft zu öffnen?',
+        german: 'Kann ich das Fenster öffnen?',
         germanWithBlank: 'Kann ich das Fenster ___?',
         translationTR: 'Pencereyi açabilir miyim?',
         translationEN: 'Can I open the window?',
@@ -1772,7 +1770,7 @@ export const wordBank: WordEntry[] = [
   {
     id: 'wissen',
     word: 'wissen',
-    tr: 'bilgi',
+    tr: 'bilmek',
     sentences: [
       {
         id: 'wissen-1',
@@ -2812,7 +2810,7 @@ export const wordBank: WordEntry[] = [
         targetWord: 'Tante',
         german: 'Meine Tante backt sehr gut.',
         germanWithBlank: 'Meine ___ backt sehr gut.',
-        translationTR: 'Halama/Teyzeam çok iyi pişirme yapar.',
+        translationTR: 'Halam/Teyzem çok iyi pişirir.',
         translationEN: 'My aunt bakes very well.',
         glossary: {
           meine: { tr: 'benim', en: 'my' },
@@ -3889,7 +3887,7 @@ export const wordBank: WordEntry[] = [
         targetWord: 'Stunde',
         german: 'Ich lerne eine Stunde pro Tag.',
         germanWithBlank: 'Ich lerne eine ___ pro Tag.',
-        translationTR: 'Günde bir saat çalışıyorum.',
+        translationTR: 'Günde bir saat öğreniyorum.',
         translationEN: 'I study one hour per day.',
         glossary: {
           lerne: { tr: 'öğreniyorum', en: 'study, learn', de: 'lernen', trDict: 'öğrenmek' },
@@ -4436,7 +4434,7 @@ export const wordBank: WordEntry[] = [
         targetWord: 'Brief',
         german: 'Ich schreibe einen Brief an meine Oma.',
         germanWithBlank: 'Ich schreibe einen ___ an meine Oma.',
-        translationTR: 'Büyükanneime bir mektup yazıyorum.',
+        translationTR: 'Büyükanneme bir mektup yazıyorum.',
         translationEN: 'I am writing a letter to my grandma.',
         glossary: {
           schreibe: { tr: 'yazıyorum', en: 'I write', de: 'schreiben', trDict: 'yazmak' },
@@ -4603,7 +4601,7 @@ export const wordBank: WordEntry[] = [
         glossary: {
           wir: { tr: 'biz', en: 'we' },
           fahren: { tr: 'gidiyoruz / sürüyoruz', en: 'we drive', de: 'fahren', trDict: 'sürmek' },
-          den: { tr: 'the (akkusativ)', en: 'the (acc.)' },
+          den: { tr: 'belirli artikel (eril, -i hali)', en: 'the (acc.)' },
           tunnel: { tr: 'tünel', en: 'tunnel' },
         },
       },
@@ -4665,7 +4663,7 @@ export const wordBank: WordEntry[] = [
         glossary: {
           ist: { tr: '... -di (yardımcı fiil)', en: 'has/is (auxiliary)' },
           in: { tr: '-e (yön)', en: 'into / onto' },
-          den: { tr: 'the (akkusativ)', en: 'the (acc.)' },
+          den: { tr: 'belirli artikel (eril, -i hali)', en: 'the (acc.)' },
           bus: { tr: 'otobüs', en: 'bus' },
         },
       },
@@ -4726,7 +4724,7 @@ export const wordBank: WordEntry[] = [
         glossary: {
           wo: { tr: 'nerede', en: 'where' },
           ist: { tr: '-dır', en: 'is', de: 'sein', trDict: 'olmak' },
-          der: { tr: 'the (maskulin)', en: 'the (masc.)' },
+          der: { tr: 'belirli artikel (eril)', en: 'the (masc.)' },
           bahnhof: { tr: 'tren istasyonu', en: 'train station' },
         },
       },
@@ -5050,7 +5048,7 @@ export const wordBank: WordEntry[] = [
   {
     id: 'leben',
     word: 'leben',
-    tr: 'hayat / yaşam',
+    tr: 'yaşamak',
     sentences: [
       {
         id: 'leben-1',
@@ -5140,7 +5138,7 @@ export const wordBank: WordEntry[] = [
         translationEN: 'I travel by train.',
         glossary: {
           fahre: { tr: 'gidiyorum (araçla)', en: 'I travel', de: 'fahren', trDict: 'sürmek' },
-          dem: { tr: 'the (datif)', en: 'the (dat.)' },
+          dem: { tr: 'belirli artikel (-e hali, eril/yansız)', en: 'the (dat.)' },
           zug: { tr: 'tren', en: 'train' },
         },
       },
@@ -5411,7 +5409,7 @@ export const wordBank: WordEntry[] = [
         translationEN: 'That is the correct answer.',
         glossary: {
           ist: { tr: '-dır', en: 'is', de: 'sein', trDict: 'olmak' },
-          die: { tr: 'the (dişil)', en: 'the (fem.)' },
+          die: { tr: 'belirli artikel (dişil)', en: 'the (fem.)' },
           antwort: { tr: 'cevap', en: 'answer' },
         },
       },
@@ -5666,7 +5664,7 @@ export const wordBank: WordEntry[] = [
         translationEN: 'I am coming from work.',
         glossary: {
           komme: { tr: 'geliyorum', en: 'I come', de: 'kommen', trDict: 'gelmek' },
-          der: { tr: 'the (datif dişil)', en: 'the (dat. fem.)' },
+          der: { tr: 'belirli artikel (dişil, datif)', en: 'the (dat. fem.)' },
           arbeit: { tr: 'iş', en: 'work' },
         },
       },
@@ -5687,7 +5685,7 @@ export const wordBank: WordEntry[] = [
         glossary: {
           café: { tr: 'kafe', en: 'café' },
           ist: { tr: '-dır', en: 'is', de: 'sein', trDict: 'olmak' },
-          dem: { tr: 'the (datif)', en: 'the (dat.)' },
+          dem: { tr: 'belirli artikel (-e hali, eril/yansız)', en: 'the (dat.)' },
           bahnhof: { tr: 'tren istasyonu', en: 'train station' },
         },
       },
@@ -6545,8 +6543,8 @@ export const wordBank: WordEntry[] = [
   },
   {
     id: 'der-arm',
-    word: 'der Arm',
-    tr: 'kol',
+    word: 'arm / der Arm',
+    tr: 'fakir, yoksul (sıfat) / kol (isim)',
     sentences: [
       {
         id: 'arm-1',
@@ -8784,7 +8782,7 @@ export const wordBank: WordEntry[] = [
     ],
   },
   {
-    id: 'die-briefkasten',
+    id: 'der-briefkasten',
     word: 'der Briefkasten',
     tr: 'posta kutusu',
     sentences: [
@@ -9112,7 +9110,7 @@ export const wordBank: WordEntry[] = [
         german: 'Ich habe Schnupfen.',
         germanWithBlank: 'Ich habe ___.',
         translationTR: 'Nezlem var.',
-        translationEN: 'I have a cold.',
+        translationEN: 'I have a runny nose.',
         glossary: {
           'ich': { tr: 'ben', en: 'I', de: 'ich' },
           'habe': { tr: 'sahip olmak (ben)', en: 'have', de: 'haben' },
@@ -11979,7 +11977,7 @@ export const wordBank: WordEntry[] = [
   {
     id: 'orange',
     word: 'orange',
-    tr: 'portakal',
+    tr: 'turuncu',
     sentences: [
       {
         id: 'orange-adj-1',
@@ -13221,7 +13219,7 @@ export const wordBank: WordEntry[] = [
         translationEN: 'The (female) pupil asks the teacher for help.',
         glossary: {
           fragt: { tr: 'soruyor', en: 'asks', de: 'fragen', trDict: 'sormak' },
-          den: { tr: 'the (belirli tanımlık, akkusativ)', en: 'the (acc.)' },
+          den: { tr: 'belirli artikel (eril, -i hali)', en: 'the (acc.)' },
           lehrer: { tr: 'öğretmen', en: 'teacher' },
           um: { tr: 'için', en: 'for' },
           hilfe: { tr: 'yardım', en: 'help' },
@@ -13495,7 +13493,7 @@ export const wordBank: WordEntry[] = [
           schneide: { tr: 'kesiyorum', en: 'I cut', de: 'schneiden', trDict: 'kesmek' },
           eine: { tr: 'bir', en: 'a/an' },
           für: { tr: 'için', en: 'for' },
-          den: { tr: 'the (akkusativ)', en: 'the (acc.)' },
+          den: { tr: 'belirli artikel (eril, -i hali)', en: 'the (acc.)' },
           salat: { tr: 'salata', en: 'salad' },
         },
       },
@@ -13556,7 +13554,7 @@ export const wordBank: WordEntry[] = [
         glossary: {
           habe: { tr: '-dim (Perfekt yardımcı)', en: 'have (perfect)', de: 'haben' },
           mir: { tr: 'kendime / bana', en: 'myself / for me' },
-          den: { tr: 'the (akkusativ)', en: 'the (acc.)' },
+          den: { tr: 'belirli artikel (eril, -i hali)', en: 'the (acc.)' },
           verletzt: { tr: 'yaraladım', en: 'hurt', de: 'verletzen', trDict: 'yaralamak' },
         },
       },
@@ -13597,7 +13595,7 @@ export const wordBank: WordEntry[] = [
           mein: { tr: 'benim', en: 'my' },
           schmerzt: { tr: 'ağrıyor', en: 'hurts', de: 'schmerzen', trDict: 'ağrımak' },
           nach: { tr: 'sonra', en: 'after' },
-          dem: { tr: 'the (datif)', en: 'the (dat.)' },
+          dem: { tr: 'belirli artikel (-e hali, eril/yansız)', en: 'the (dat.)' },
           sport: { tr: 'spor', en: 'sport' },
         },
       },
@@ -13763,7 +13761,7 @@ export const wordBank: WordEntry[] = [
         translationEN: 'During the break I drink water.',
         glossary: {
           in: { tr: '-de', en: 'in / during' },
-          der: { tr: 'the (datif)', en: 'the (dat.)' },
+          der: { tr: 'belirli artikel (dişil, datif)', en: 'the (dat.)' },
           trinke: { tr: 'içiyorum', en: 'I drink', de: 'trinken', trDict: 'içmek' },
           wasser: { tr: 'su', en: 'water' },
         },
@@ -14540,7 +14538,7 @@ export const wordBank: WordEntry[] = [
         translationTR: 'Müzeyi gezmek istiyoruz.',
         translationEN: 'We would like to visit the museum.',
         glossary: {
-          möchten: { tr: 'istemek (礼貌)', en: 'would like to', trDict: 'istemek' },
+          möchten: { tr: 'istemek (nazikçe)', en: 'would like to', trDict: 'istemek' },
           museum: { tr: 'müze', en: 'museum', de: 'das Museum' },
         },
       },
