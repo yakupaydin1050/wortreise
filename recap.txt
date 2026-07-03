@@ -1,0 +1,55 @@
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-03)
+═══════════════════════════════════════════════════════════════
+
+1) EXPO DEV ORTAMI KURULDU
+   - node_modules eksikti; `npm install` ile tüm bağımlılıklar kuruldu.
+   - `npx expo install --fix` ile SDK 54 uyumsuzlukları giderildi:
+       expo ~54.0.33 -> ~54.0.35
+       babel-preset-expo ^55.0.21 -> ~54.0.10
+   - Port 8081'i tutan eski (kilitlenmiş) node süreci sonlandırıldı.
+   - `npx expo start` ile dev server çalıştırıldı; telefonda Expo Go
+     ile bağlantı için: exp://192.168.1.15:8081 (aynı Wi-Fi ağı).
+
+2) SORU BANKASI VERİ KALİTESİ — TÜRKÇE SIZINTI KONTROLÜ
+   - Önceki temizlik commit'lerinin (c308c51, cc0d02d) origin/master'a
+     push edildiği doğrulandı.
+   - Almanca cümlelere karışmış 3 gözden kaçan Türkçe kelime bulundu ve
+     düzeltildi (wordBankB1.ts):
+       "Ben möchte..."          -> "Ich möchte..."
+       "Wir haben bir runden..." -> "Wir haben einen runden..."
+       "...Bank bugün geöffnet"  -> "...Bank heute geöffnet"
+
+3) YEDEK KLASÖR KIYASLAMASI
+   - new-wordBanks/ yedeği ile src/data/ karşılaştırıldı.
+   - Sonuç: src/data DAHA GÜNCEL. Yedek, yapılan düzeltmelerden ÖNCEKİ
+     snapshot'tı. Yedek klasör silindi.
+
+4) KAPSAMLI DİLBİLGİSİ / NOKTALAMA DENETİMİ (Almanca + Türkçe)
+   Tüm soru bankaları (A1/A2/B1, ~44.000 satır) + uygulama geneli
+   arayüz metinleri (ekranlar, komponentler, achievements, wortdorf,
+   policies) tarandı. 16 gerçek hata düzeltildi:
+   Almanca:
+     - "chick" -> "chic"
+     - "Die creme" -> "Die Creme" (isim büyütme)
+     - Eksik fiil: "Man kann euch beide nicht unterscheiden."
+     - 2x zu-infinitif öncesi eksik virgül (weigern, zwingen)
+     - 6x "?." fazladan nokta -> "?"
+     - 7x yarım/"..." kalıntı cümle tamamlandı
+     - wortdorf diyaloğunda Sie/du karışıklığı + brauchen+zu hatası
+   Türkçe:
+     - "susamdım"->"susadım", "Büyünannem"->"Büyükannem"
+     - "Haftasonu"->"Hafta sonu"
+     - "Kendini sıcak giydirdi"->"Sıcak giyindi" (+glossary temizliği)
+     - "kelimenı"->"kelimeni" (ünlü uyumu)
+     - makine çevirisi gibi duran cümle doğallaştırıldı
+     - Parfüm/Parfum yazım tutarlılığı
+
+5) GIT / GITHUB
+   - c654f2c  chore: expo & babel-preset-expo SDK 54 uyumu
+   - 18058df  fix: Almanca/Türkçe dilbilgisi & noktalama düzeltmeleri
+   - origin/master'a push edildi. new-wordBanks/ yedeği silindi.
+
+Not: Uygulama logic'ine (kod mantığına) dokunulmadı; yalnızca metin
+içerikleri ve bağımlılık sürümleri değiştirildi.
+═══════════════════════════════════════════════════════════════
