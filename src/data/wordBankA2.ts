@@ -2698,8 +2698,8 @@ export const wordBankA2: WordEntry[] = [
     tr: 'parfüm',
     sentences: [{
       id: 'das-parfuem-s-1',
-      targetWord: 'Parfum',
-      german: 'Ich suche ein Parfum als Geschenk.',
+      targetWord: 'Parfüm',
+      german: 'Ich suche ein Parfüm als Geschenk.',
       germanWithBlank: 'Ich suche ein ___ als Geschenk.',
       translationTR: 'Hediye olarak bir parfüm arıyorum.',
       translationEN: '',

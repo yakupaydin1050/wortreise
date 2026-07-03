@@ -15,7 +15,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'first_word',
     emoji: '🌱',
     title: 'İlk Adım',
-    desc: 'İlk kelimenı öğrendin',
+    desc: 'İlk kelimeni öğrendin',
     category: 'kelime',
     check: (_, __, m) => m >= 1,
   },

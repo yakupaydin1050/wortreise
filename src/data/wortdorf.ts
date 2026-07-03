@@ -143,19 +143,19 @@ export const BUILDINGS: Building[] = [
         },
         {
           text: 'Ich brauche eine Bescheinigung.',
-          reply: 'Ah ja, eine Bescheinigung — das ist möglich. Aber: Welche Art? Meldebescheinigung oder Einkommensbescheinigung? Bitte sei spezifischer.',
+          reply: 'Ah ja, eine Bescheinigung — das ist möglich. Aber: Welche Art? Meldebescheinigung oder Einkommensbescheinigung? Bitte seien Sie spezifischer.',
           coins: 12,
           isCorrect: false,
           feedback: {
             type: 'partial',
             npcReaction: 'uncertain',
-            hint: 'Das ist eine gute Frage, aber du brauchst zuerst dich anmelden. Das ist der erste Schritt!',
+            hint: 'Das ist eine gute Frage, aber du musst dich zuerst anmelden. Das ist der erste Schritt!',
             allowRetry: true,
           },
         },
         {
           text: 'Wann ist die Öffnungszeit?',
-          reply: 'Das ist eine gute Frage, aber ich denke, du brauchst zuerst den wichtigsten Service: die Anmeldung!',
+          reply: 'Das ist eine gute Frage, aber ich denke, Sie brauchen zuerst den wichtigsten Service: die Anmeldung!',
           coins: 3,
           isCorrect: false,
           feedback: {
