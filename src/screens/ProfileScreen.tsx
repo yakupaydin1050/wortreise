@@ -511,7 +511,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             <GlassPanel padding={spacing.xl} style={styles.footerCard}>
               <Text style={styles.footerFlag}>🇩🇪</Text>
               <Text style={styles.footerAppName}>Wortreise</Text>
-              <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
+              <Text style={styles.footerVersion}>Versiyon 1.1.0</Text>
               <View style={styles.footerDivider} />
               <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
               <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
