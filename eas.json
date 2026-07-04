@@ -16,5 +16,12 @@
     "development": {
       "developmentClient": true
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6774772723"
+      }
+    }
   }
 }
