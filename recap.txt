@@ -52,4 +52,66 @@
 
 Not: Uygulama logic'ine (kod mantığına) dokunulmadı; yalnızca metin
 içerikleri ve bağımlılık sürümleri değiştirildi.
+
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-04)
+  UI DÖNÜŞÜMÜ: "Flat/Boxy" -> "Modern Premium" (koyu tema)
+═══════════════════════════════════════════════════════════════
+
+1) TASARIM SİSTEMİ KURULDU — src/theme/index.ts
+   - Tek kaynak: renk paleti (colors, levelAccent, gameAccent),
+     accent/canvas degradeleri, alpha() yardımcısı, spacing/radius
+     token'ları, tipografi ölçeği, gölge & glow preset'leri.
+   - Yön: derin lacivert degrade zemin + ambient glow, faux-glass
+     paneller (yarı saydam yüzey + ince ışık kenarı + yumuşak gölge),
+     indigo→viyole accent, seri/rozet için altın vurgu.
+   - Ekranlardaki kopyala-yapıştır "const C = {...}" paletleri artık
+     theme'e bağlanıyor.
+
+2) ATOMİK UI BİLEŞENLERİ — src/components/ui/
+   - GlassPanel, PressableScale (yay animasyonlu basma ölçeklemesi +
+     hafif haptic), InteractiveButton (degrade/glass/ghost/danger),
+     ScreenBackground (degrade + glow), ScreenHeader, SectionHeader,
+     animasyonlu ProgressBar, Pill, StatTile.
+   - utils/haptics.ts'e triggerTap() ve triggerSelect() eklendi;
+     dokunma geri bildirimi uygulama genelinde standartlaştırıldı.
+
+3) NAVİGASYON KABUĞU
+   - App.tsx: koyu navigation teması, light StatusBar, akışkan
+     geçişler (ekranlar slide_from_right, oyunlar fade_from_bottom),
+     glass tab bar. app.json: Android navigasyon çubuğu koyu yapıldı.
+
+4) TÜM EKRANLAR YENİ SİSTEME TAŞINDI (17 ekran)
+   - Tab'lar: Home, Oyunlar, Gelişim (Stats), Profil.
+   - Seviye ekranları: A1/A2/B1 birebir kopyaydı; tek LevelScreenBase
+     bileşenine indirildi (üçü ince sarmalayıcı, ~1000 satır tekrar
+     kod silindi).
+   - Oyunlar: Game (Boşluk Doldur), Matching, Artikel, KelimeAvi,
+     Hafıza — eşleşme/artikel/seçenek renkleri koyu zeminde okunacak
+     şekilde parlaklaştırıldı; tüm modal/bottom-sheet'ler koyu stile
+     geçti.
+   - Hikâye modu: Wortdorf, Neighborhood, Dialog. Onboarding dahil.
+   - Paylaşılan bileşenler: SentenceRow, WordChip, WordListModal,
+     ErrorBoundary. GridBackground yerine ScreenBackground kullanılıyor.
+   - GameScreen'in PNG olarak paylaşılan kart görseli bilerek açık
+     renkli bırakıldı (beyaz zeminde paylaşım için).
+
+5) HATA DÜZELTMESİ — Segment butonları görünmüyordu
+   - Belirti: Gelişim ve Profil üstündeki sekme butonları (İstatistik/
+     Kelimeler, Profil/Ayarlar) çalışıyor ama UI'da görünmüyordu.
+   - Kök neden: PressableScale stili içteki Animated.View'a uyguluyordu;
+     flex:1 içeren stiller otomatik boyutlanan Pressable içinde sıfır
+     boyuta çöküyordu.
+   - Çözüm: Animated.createAnimatedComponent(Pressable) ile stil +
+     ölçek animasyonu tek düğümde birleştirildi. Aynı sorundan
+     etkilenen süre/hedef çipleri de bu düzeltmeyle kurtuldu.
+
+6) DOĞRULAMA
+   - npx tsc --noEmit temiz (kalan hatalar yalnızca önceden var olan
+     src/data/wortdorf.ts veri tipi hataları; bu oturumda dokunulmadı).
+   - Metro Android bundle başarıyla derlendi (1593 modül, HTTP 200).
+
+Not: Logic katmanı (storage, @lernspiel_profile, oyun mekanikleri,
+Firebase raporlama, navigasyon akışı) aynen korundu; yalnızca görsel
+katman değişti. Henüz commit edilmedi.
 ═══════════════════════════════════════════════════════════════
