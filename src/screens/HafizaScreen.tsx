@@ -13,11 +13,10 @@ import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBankA1';
 import { colors, gameAccent } from '../theme';
 import { ScreenBackground } from '../components/ui';
-import { db } from '../utils/firebase';
+import { submitReport as sendReport } from '../utils/reporting';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
 import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type Difficulty = '4x3' | '4x4';
 const PAIR_COUNTS: Record<Difficulty, number> = { '4x3': 6, '4x4': 8 };
@@ -412,7 +411,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     if (!reportItem) return;
     setReportSending(true);
     try {
-      await addDoc(collection(db, 'reports'), {
+      await sendReport('reports', {
         game: 'hafiza',
         level,
         difficulty,
@@ -420,7 +419,6 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
         tr: reportItem.tr,
         wordId: reportItem.pairId,
         note: reportNote.trim(),
-        createdAt: serverTimestamp(),
       });
       setReportedIds(prev => new Set(prev).add(reportItem.pairId));
       setReportSent(true);

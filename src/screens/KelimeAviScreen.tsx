@@ -12,8 +12,7 @@ import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBankA1';
 import { alpha, colors, gameAccent } from '../theme';
 import { ScreenBackground } from '../components/ui';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { submitReport as sendReport } from '../utils/reporting';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
 import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
@@ -284,7 +283,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
     if (!reportWord || reportNote.trim().length === 0 || reportSending) return;
     setReportSending(true);
     try {
-      await addDoc(collection(db, 'reports'), {
+      await sendReport('reports', {
         game: 'kelimeAvi',
         level,
         direction,
@@ -292,7 +291,6 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
         tr: reportWord.tr,
         wordId: reportWord.id,
         note: reportNote.trim(),
-        createdAt: serverTimestamp(),
       });
       setReportedIds(prev => new Set(prev).add(reportWord.id));
       setReportSent(true);

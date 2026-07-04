@@ -14,8 +14,7 @@ import type { LevelId } from '../utils/storage';
 import { AchievementDef, checkNewAchievements } from '../data/achievements';
 import { alpha, colors, gameAccent } from '../theme';
 import { ScreenBackground } from '../components/ui';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { submitReport as sendReport } from '../utils/reporting';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
 import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
@@ -239,14 +238,13 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
     if (!reportItem || reportNote.trim().length === 0 || reportSending) return;
     setReportSending(true);
     try {
-      await addDoc(collection(db, 'reports'), {
+      await sendReport('reports', {
         game: 'eslestirme',
         level,
         german: reportItem.german,
         turkish: reportItem.turkish,
         wordId: reportItem.id,
         note: reportNote.trim(),
-        createdAt: serverTimestamp(),
       });
       setReportedIds(prev => new Set(prev).add(reportItem.id));
       setReportSent(true);

@@ -11,8 +11,7 @@ import { ACHIEVEMENTS, AchievementDef, checkNewAchievements } from '../data/achi
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as StoreReview from 'expo-store-review';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { submitReport as sendReport } from '../utils/reporting';
 import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
 import { colors } from '../theme';
@@ -251,7 +250,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     if (!sentence) return;
     setReportSending(true);
     try {
-      await addDoc(collection(db, 'reports'), {
+      await sendReport('reports', {
         game: 'boşluk_doldurma',
         level,
         theme: card.theme,
@@ -260,7 +259,6 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         translationTR: sentence.translationTR ?? '',
         wordBankId: sentence.wordBankId ?? '',
         note: reportNote.trim(),
-        createdAt: serverTimestamp(),
       });
       setReportedIds(prev => new Set(prev).add(reportSentenceId));
       setReportVisible(false);

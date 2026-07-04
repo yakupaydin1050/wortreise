@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { submitReport } from '../utils/reporting';
 
 interface State {
   hasError: boolean;
@@ -18,13 +17,12 @@ export default class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    addDoc(collection(db, 'crash_reports'), {
+    submitReport('crash_reports', {
       message: error.message,
       stack: error.stack ?? '',
       componentStack: info.componentStack ?? '',
       platform: Platform.OS,
       platformVersion: String(Platform.Version),
-      timestamp: serverTimestamp(),
     }).catch(() => {});
   }
 
