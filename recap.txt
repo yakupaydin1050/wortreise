@@ -113,5 +113,76 @@ içerikleri ve bağımlılık sürümleri değiştirildi.
 
 Not: Logic katmanı (storage, @lernspiel_profile, oyun mekanikleri,
 Firebase raporlama, navigasyon akışı) aynen korundu; yalnızca görsel
-katman değişti. Henüz commit edilmedi.
+katman değişti. (Commit'ler aynı gün ilerleyen bölümde yapıldı.)
+
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-04, devam)
+  CİLA + TELEGRAM + 1.1.0 SÜRÜM YAYINI
+═══════════════════════════════════════════════════════════════
+
+1) UI CİLASI
+   - GlassPanel'e "raised" (key-cap) varyantı: tıklanabilir kartlar
+     opak yüzey + üstte ışık çizgisi + altta 5px kalın koyu kenar +
+     accent glow ile gerçek buton gibi; statik paneller düz cam kaldı.
+     PressableScale basınca 3px aşağı iner (fiziksel tuş hissi).
+     Uygulandığı yerler: Home seviye/Wortstadt kartları, Oyunlar
+     kartları, Gelişim kelime havuzu satırları, Profil ayar satırları,
+     seviye ekranı hero + liste satırları, Wortstadt mahalle/bina.
+   - Tab bar: aktif sekme ikonu ışıklı indigo pill içinde, aktif renk
+     parlatıldı (#A9B4FF).
+
+2) PREMIUM GERİ BİLDİRİM SESLERİ (sentezle üretildi, 44.1kHz)
+   - correct.wav: iki notalık çan D5→A5 (tam beşli), 0.6sn, yumuşak
+     atak + doğal sönüm. (İlk sürüm A5→E6/0.9sn idi; istek üzerine
+     kısaltılıp pesletildi.)
+   - wrong.wav: nazik pes çift vuruş G3→Eb3, 0.55sn (bız yok).
+   - sound.ts web fallback tonları aynı karaktere eşitlendi.
+
+3) HATA BİLDİRİMLERİ -> TELEGRAM
+   - src/utils/reporting.ts: submitReport() — Firestore (arşiv,
+     birincil) + Telegram Bot API'ye anlık bildirim (best-effort,
+     8sn timeout, asla bloklamaz). 5 oyun ekranı + ErrorBoundary
+     bu util'e taşındı.
+   - Bot: @Wortreise_bot; chat id getUpdates ile alındı; uçtan uca
+     test edildi (mesaj Telegram'a düştü).
+   - GÜVENLİK: Repo public olduğu için token kaynak koda değil,
+     git-ignore'lu .env'e (EXPO_PUBLIC_TELEGRAM_BOT_TOKEN/CHAT_ID)
+     konuldu; git geçmişi tarandı — token hiçbir commit'te yok.
+     Store build'leri için aynı değerler EAS production ortam
+     değişkeni olarak tanımlandı (eas env:create).
+
+4) iOS 1.1.0 BUILD + APP STORE
+   - Versiyon 1.0.0 -> 1.1.0 (app.json + Profil ekranı yazısı);
+     buildNumber remote/autoIncrement (4, sonra 5).
+   - İlk build (no 4) HATA: experiments.baseUrl "/wortreise" (GitHub
+     Pages web export'u için) iOS asset yollarını bozuyordu —
+     Wortreise.app/wortreise, case-insensitive dosya sisteminde
+     "Wortreise" binary'siyle çakışıyor (ENOTDIR).
+   - ÇÖZÜM: app.config.js — EAS_BUILD=true iken baseUrl kaldırılıyor;
+     web export etkilenmez. Build no 5 başarılı.
+   - eas.json'a submit profili eklendi (ascAppId: 6774772723).
+   - İlk submit: MISSING_REQUIRED_AGREEMENT (Apple sözleşme onayı
+     gerekti); kullanıcı onayladıktan ~8dk sonra otomatik yeniden
+     deneme geçti — TestFlight'a yüklendi.
+   - Ekran görüntüleri Canva'da yenilendi (6.9" 1320×2868 +
+     iPad 13" 2064×2752) ve sürüm incelemeye gönderildi.
+
+5) ANDROID 1.1.0 BUILD
+   - eas build android/production: 1.1.0, versionCode 8 (remote'ta
+     son 7 idi — çakışma yok). .aab hazır, Play Console'a elle
+     yüklenecek (Google service account kurulmadı).
+
+6) GIT
+   - 0a15410 feat: premium dark UI overhaul (tema+atomlar+17 ekran)
+   - d3d04b6 feat: warmer premium feedback sounds
+   - e07d710 docs: 2026-07-04 recap
+   - 9b56132 feat: route error/crash reports to Telegram
+   - 1779a9e chore: bump version to 1.1.0
+   - b5354cf fix: drop web-only baseUrl during EAS builds + submit
+     profili
+   - Hepsi origin/master'a push edildi. .env dışarıda.
+
+Durum: iOS 1.1.0 (5) App Store incelemesinde; Android 1.1.0 (8)
+.aab'si Play Console yüklemesi bekliyor. Telegram bildirimleri iki
+platformun store build'lerinde de aktif olacak.
 ═══════════════════════════════════════════════════════════════
