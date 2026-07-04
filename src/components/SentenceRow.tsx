@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated } from 'react-native';
 import { Sentence, GlossaryEntry } from '../types';
 import { wordsByLevel } from '../data/generateCard';
+import { alpha, colors } from '../theme';
 
 interface Props {
   sentence: Sentence;
@@ -98,38 +99,38 @@ export default function SentenceRow({
   const effectiveDisplay = isHint ? correctionWord : displayWord;
 
   const accentColor =
-    isCorrect === true  ? '#1A9E6E' :
-    isCorrect === false ? '#DC2626' :
-    displayWord         ? '#D97706' :
-                          '#64748B';
+    isCorrect === true  ? colors.success :
+    isCorrect === false ? colors.danger :
+    displayWord         ? colors.warning :
+                          colors.textFaint;
 
   const cardBgColor =
-    isCorrect === true  ? 'rgba(26,158,110,0.08)' :
-    isCorrect === false ? 'rgba(220,38,38,0.07)' :
-    displayWord         ? 'rgba(217,119,6,0.06)' :
-                          'rgba(100,116,139,0.04)';
+    isCorrect === true  ? alpha(colors.success, 0.08) :
+    isCorrect === false ? alpha(colors.danger, 0.07) :
+    displayWord         ? alpha(colors.warning, 0.06) :
+                          colors.glass;
 
   const cardBorderColor =
-    isCorrect === true  ? 'rgba(26,158,110,0.28)' :
-    isCorrect === false ? 'rgba(220,38,38,0.22)' :
-    displayWord         ? 'rgba(217,119,6,0.28)' :
-                          'rgba(100,116,139,0.22)';
+    isCorrect === true  ? alpha(colors.success, 0.32) :
+    isCorrect === false ? alpha(colors.danger, 0.3) :
+    displayWord         ? alpha(colors.warning, 0.3) :
+                          colors.glassBorder;
 
   const blankBorderColor =
-    isHint              ? '#B8C4E8' :
-    isCorrect === true  ? '#1A9E6E' :
-    isCorrect === false ? '#DC2626' :
-    displayWord         ? '#D97706' :
-    selectedWord        ? '#3B5BDB' :
-                          '#C8D0E8';
+    isHint              ? colors.glassBorderStrong :
+    isCorrect === true  ? colors.success :
+    isCorrect === false ? colors.danger :
+    displayWord         ? colors.warning :
+    selectedWord        ? colors.primary :
+                          colors.glassBorderStrong;
 
   const blankBgColor =
-    isHint              ? '#F5F6FF' :
-    isCorrect === true  ? 'rgba(26,158,110,0.10)' :
-    isCorrect === false ? 'rgba(220,38,38,0.08)' :
-    displayWord         ? 'rgba(217,119,6,0.09)' :
-    selectedWord        ? 'rgba(59,91,219,0.09)' :
-                          '#FAF8F4';
+    isHint              ? colors.glassStrong :
+    isCorrect === true  ? alpha(colors.success, 0.12) :
+    isCorrect === false ? alpha(colors.danger, 0.1) :
+    displayWord         ? alpha(colors.warning, 0.1) :
+    selectedWord        ? alpha(colors.primary, 0.14) :
+                          colors.glass;
 
   return (
     <View style={[styles.card, { borderLeftColor: accentColor, backgroundColor: cardBgColor, borderColor: cardBorderColor }]}>
@@ -223,19 +224,18 @@ export default function SentenceRow({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     paddingLeft: 14,
     paddingRight: 16,
     paddingTop: 14,
     paddingBottom: 16,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
   },
   translationRow: {
     flexDirection: 'row',
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.07)',
+    borderTopColor: colors.glassBorder,
   },
   trButton: {
     flexDirection: 'row',
@@ -254,38 +254,38 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(59,91,219,0.2)',
-    backgroundColor: 'rgba(59,91,219,0.05)',
+    borderColor: alpha(colors.primary, 0.25),
+    backgroundColor: alpha(colors.primary, 0.07),
   },
   trButtonActive: {
-    borderColor: 'rgba(59,91,219,0.4)',
-    backgroundColor: 'rgba(59,91,219,0.12)',
+    borderColor: alpha(colors.primary, 0.5),
+    backgroundColor: alpha(colors.primary, 0.16),
   },
   trFlag: { fontSize: 16 },
   trButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textDim,
     letterSpacing: 0.2,
   },
   trButtonTextActive: {
-    color: '#3B5BDB',
+    color: colors.primary,
   },
   translationInline: {
-    flex: 1, fontSize: 13, color: '#4E5C80',
+    flex: 1, fontSize: 13, color: colors.textDim,
     fontWeight: '500', lineHeight: 19,
   },
-  number: { fontSize: 15, fontWeight: '800', color: '#0F172A', letterSpacing: 0.3, lineHeight: 26 },
+  number: { fontSize: 15, fontWeight: '800', color: colors.text, letterSpacing: 0.3, lineHeight: 26 },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     flexWrap: 'wrap',
   },
-  text: { fontSize: 15, color: '#0F172A', lineHeight: 26, fontWeight: '500' },
+  text: { fontSize: 15, color: colors.text, lineHeight: 26, fontWeight: '500' },
   wordLink: {
     textDecorationLine: 'underline',
-    textDecorationColor: '#3B5BDB',
-    color: '#3B5BDB',
+    textDecorationColor: colors.primary,
+    color: colors.primary,
   },
   blank: {
     borderWidth: 1.5,
@@ -296,10 +296,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     alignItems: 'center',
   },
-  blankText: { fontSize: 15, color: '#1A2340', fontWeight: '700', letterSpacing: 0.2 },
-  blankHint: { color: '#8896B8', fontStyle: 'italic' },
-  blankCorrect: { color: '#1A9E6E' },
-  blankWrong: { color: '#DC2626' },
+  blankText: { fontSize: 15, color: colors.text, fontWeight: '700', letterSpacing: 0.2 },
+  blankHint: { color: colors.textFaint, fontStyle: 'italic' },
+  blankCorrect: { color: colors.success },
+  blankWrong: { color: colors.danger },
   invisible: { color: 'transparent' },
   correctionRow: {
     marginTop: 6,
@@ -308,32 +308,32 @@ const styles = StyleSheet.create({
   },
   correctionText: {
     fontSize: 13,
-    color: '#1A9E6E',
+    color: colors.success,
     fontWeight: '600',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(10,20,60,0.45)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgSheet,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDE3F5',
+    borderColor: colors.glassBorderStrong,
     paddingHorizontal: 22,
     paddingTop: 22,
     paddingBottom: 20,
     minWidth: 260,
     maxWidth: 360,
     gap: 12,
-    shadowColor: '#3B5BDB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 10,
   },
   modalClose: {
     position: 'absolute',
@@ -344,11 +344,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCloseText: { fontSize: 18, color: '#8896B8', fontWeight: '600' },
+  modalCloseText: { fontSize: 18, color: colors.textFaint, fontWeight: '600' },
   modalWord: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1A2340',
+    color: colors.text,
     paddingRight: 32,
     letterSpacing: 0.2,
   },
@@ -358,5 +358,5 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   modalFlag: { fontSize: 18, lineHeight: 24 },
-  modalTranslation: { fontSize: 16, color: '#4E5C80', flex: 1, lineHeight: 22 },
+  modalTranslation: { fontSize: 16, color: colors.textDim, flex: 1, lineHeight: 22 },
 });

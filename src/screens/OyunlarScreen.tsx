@@ -1,18 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GridBackground from '../components/GridBackground';
-
-const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF',
-  border: '#DDE3F5', borderBright: '#B8C4E8',
-  primary: '#3B5BDB', primaryBg: 'rgba(59,91,219,0.10)',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  headerBg: '#111C32',
-  headerTitle: '#E8F0FB',
-  headerSub: '#6B82A0',
-  headerBorder: 'rgba(255,255,255,0.07)',
-};
+import { alpha, colors, gameAccent, radius, spacing, type } from '../theme';
+import { ScreenBackground, GlassPanel, PressableScale } from '../components/ui';
 
 const GAMES = [
   {
@@ -21,10 +11,7 @@ const GAMES = [
     title: 'Eşleştirme',
     desc: 'Almanca ve Türkçe kelimeleri eşleştir.',
     meta: '10 çift · sınırsız tur',
-    color: '#7C3AED',
-    colorBg: 'rgba(124,58,237,0.07)',
-    colorBorder: '#E0D4F7',
-    iconBg: 'rgba(124,58,237,0.12)',
+    accent: gameAccent.matching,
   },
   {
     key: 'Artikel',
@@ -32,10 +19,7 @@ const GAMES = [
     title: 'Artikel Savaşları',
     desc: 'der · die · das — kaç kelimeyi hatasız yaparsın?',
     meta: 'Seri rekoru · kendi kendine rekabet',
-    color: '#EC4899',
-    colorBg: 'rgba(236,72,153,0.07)',
-    colorBorder: 'rgba(236,72,153,0.25)',
-    iconBg: 'rgba(236,72,153,0.12)',
+    accent: gameAccent.artikel,
   },
   {
     key: 'KelimeAvi',
@@ -43,10 +27,7 @@ const GAMES = [
     title: 'Kelime Avı',
     desc: 'Türkçe anlamı gör, doğru Almancayı seç!',
     meta: 'Çoktan seçmeli · seri rekoru',
-    color: '#0891B2',
-    colorBg: 'rgba(8,145,178,0.07)',
-    colorBorder: 'rgba(8,145,178,0.25)',
-    iconBg: 'rgba(8,145,178,0.12)',
+    accent: gameAccent.kelimeAvi,
   },
   {
     key: 'Hafiza',
@@ -54,91 +35,79 @@ const GAMES = [
     title: 'Hafıza',
     desc: '20 kartı çevir, Almanca-Türkçe eşleşmeleri bul.',
     meta: '10 çift · en hızlı süre',
-    color: '#6366F1',
-    colorBg: 'rgba(99,102,241,0.07)',
-    colorBorder: 'rgba(99,102,241,0.25)',
-    iconBg: 'rgba(99,102,241,0.12)',
+    accent: gameAccent.hafiza,
   },
 ];
 
 export default function OyunlarScreen({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Oyunlar</Text>
-        <Text style={styles.headerSub}>Bilgini pekiştir, rekorunu kır</Text>
-      </View>
+      <ScreenBackground tint={gameAccent.matching} />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={type.display}>Oyunlar</Text>
+          <Text style={styles.headerSub}>Bilgini pekiştir, rekorunu kır</Text>
+        </View>
 
-      <View style={styles.body}>
-        <GridBackground />
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.list}>
           {GAMES.map(g => (
-            <TouchableOpacity
+            <PressableScale
               key={g.key}
-              style={[styles.card, {
-                backgroundColor: g.colorBg,
-                borderColor: g.colorBorder,
-                borderLeftColor: g.color,
-                shadowColor: g.color,
-              }]}
               onPress={() => navigation.navigate(g.key)}
-              activeOpacity={0.85}
+              accessibilityLabel={g.title}
             >
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.cardTitleRow}>
-                  <View style={[styles.cardIconBox, { backgroundColor: g.iconBg }]}>
-                    <Text style={styles.cardIconText}>{g.icon}</Text>
+              <GlassPanel padding={spacing.xl} raised tint={g.accent} style={styles.card}>
+                <View style={styles.cardTop}>
+                  <View style={[styles.iconBubble, {
+                    backgroundColor: alpha(g.accent, 0.18),
+                    borderColor: alpha(g.accent, 0.4),
+                  }]}>
+                    <Text style={styles.iconText}>{g.icon}</Text>
                   </View>
-                  <Text style={styles.cardTitle}>{g.title}</Text>
+                  <View style={styles.cardTitleWrap}>
+                    <Text style={styles.cardTitle}>{g.title}</Text>
+                    <Text style={styles.cardDesc} numberOfLines={2}>{g.desc}</Text>
+                  </View>
                 </View>
-              </View>
-              <Text style={styles.cardDesc}>{g.desc}</Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardMeta}>{g.meta}</Text>
-                <Text style={[styles.cardArrow, { color: g.color }]}>→</Text>
-              </View>
-            </TouchableOpacity>
+                <View style={styles.cardFooter}>
+                  <Text style={[styles.cardMeta, { color: g.accent }]}>{g.meta}</Text>
+                  <Text style={[styles.chevron, { color: g.accent }]}>›</Text>
+                </View>
+              </GlassPanel>
+            </PressableScale>
           ))}
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: {
-    paddingHorizontal: 20, paddingVertical: 16,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+  safe: { flex: 1, backgroundColor: colors.bg },
+  container: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: 56,
+    gap: spacing.xl,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
-  headerSub: { fontSize: 13, color: C.textDim, marginTop: 3, fontWeight: '500', letterSpacing: 0.1 },
+  header: { gap: 4 },
+  headerSub: { ...type.body, fontSize: 14 },
 
-  body: { flex: 1, backgroundColor: C.bg },
-  container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 12 },
-
-  card: {
-    borderRadius: 18, padding: 18,
-    borderWidth: 1, borderLeftWidth: 4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 10, elevation: 4,
+  list: { gap: spacing.md },
+  card: { gap: spacing.lg },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  iconBubble: {
+    width: 52, height: 52, borderRadius: radius.md,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
   },
-  cardHeaderRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 10,
+  iconText: { fontSize: 24 },
+  cardTitleWrap: { flex: 1, gap: 3 },
+  cardTitle: { ...type.heading, fontSize: 16 },
+  cardDesc: { ...type.caption, lineHeight: 17 },
+  cardFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: colors.glassBorder, paddingTop: spacing.md,
   },
-  cardTitleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1,
-  },
-  cardIconBox: {
-    borderRadius: 12, width: 40, height: 40,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardIconText: { fontSize: 20 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1, flex: 1 },
-  cardDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, marginBottom: 8, letterSpacing: 0.1 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardMeta: { fontSize: 12, fontWeight: '600', color: C.textDim },
-  cardArrow: { fontSize: 20, fontWeight: '700' },
+  cardMeta: { fontSize: 12.5, fontWeight: '700', letterSpacing: 0.3 },
+  chevron: { fontSize: 24, fontWeight: '400', opacity: 0.8 },
 });

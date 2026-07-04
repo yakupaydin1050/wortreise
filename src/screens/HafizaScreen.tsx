@@ -11,7 +11,8 @@ import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBankA1';
-import GridBackground from '../components/GridBackground';
+import { colors, gameAccent } from '../theme';
+import { ScreenBackground } from '../components/ui';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
 import { triggerHaptic } from '../utils/haptics';
@@ -28,15 +29,16 @@ const GAP = 8;
 const H_PAD = 16;
 const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP * (COLS - 1)) / COLS);
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF',
-  border: '#DDE3F5',
-  primary: '#6366F1',
-  primaryBg: 'rgba(99,102,241,0.10)',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  success: '#1A9E6E', successBg: 'rgba(26,158,110,0.12)',
-  warning: '#D97706', warningBg: 'rgba(217,119,6,0.10)',
-  danger: '#E03E3E', dangerBg: 'rgba(224,62,62,0.10)',
+  bg: colors.bg, surface: colors.glass,
+  border: colors.glassBorder,
+  primary: gameAccent.hafiza,
+  primaryBg: 'rgba(129,140,248,0.14)',
+  text: colors.text, textDim: colors.textDim, textFaint: colors.textFaint,
+  success: colors.success, successBg: colors.successSoft,
+  warning: colors.gold, warningBg: colors.goldSoft,
+  danger: colors.danger, dangerBg: colors.dangerSoft,
 };
 
 interface WordPair { id: string; german: string; tr: string }
@@ -62,9 +64,10 @@ function buildPairsForBank(bank: WordEntry[]): WordPair[] {
     .filter((x): x is WordPair => x !== null);
 }
 
+// Bright pair colors tuned for the dark canvas
 const COLOR_SETS: Record<Difficulty, string[]> = {
-  '4x3': ['#DC2626', '#2563EB', '#16A34A', '#EA580C', '#7C3AED', '#0891B2'],
-  '4x4': ['#DC2626', '#2563EB', '#16A34A', '#EA580C', '#7C3AED', '#0891B2', '#DB2777', '#65A30D'],
+  '4x3': ['#F87171', '#7C8CF8', '#34D399', '#FB923C', '#A78BFA', '#22D3EE'],
+  '4x4': ['#F87171', '#7C8CF8', '#34D399', '#FB923C', '#A78BFA', '#22D3EE', '#F472B6', '#A3E635'],
 };
 
 const DIFF_LABELS: Record<Difficulty, { grid: string; sub: string }> = {
@@ -147,7 +150,7 @@ function FlipCard({ card, onPress, cardH, cardW, celebratePair }: { card: MemCar
 
   const isOpen = card.isFlipped || card.isMatched;
   const dynamicFace = isOpen ? {
-    backgroundColor: hexToRgba(card.color, 0.11),
+    backgroundColor: hexToRgba(card.color, 0.16),
     borderColor: card.color,
     shadowColor: card.color,
     shadowOffset: { width: 0, height: 1 } as const,
@@ -229,16 +232,16 @@ const cardStyles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 10, borderWidth: 1.5, gap: 6,
   },
   faceBack: {
-    backgroundColor: C.primary,
-    borderColor: 'rgba(99,102,241,0.6)',
-    shadowColor: C.primary,
+    backgroundColor: '#39406E',
+    borderColor: 'rgba(129,140,248,0.55)',
+    shadowColor: gameAccent.hafiza,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35, shadowRadius: 4, elevation: 3,
   },
   backSymbol: { fontSize: 20, color: 'rgba(255,255,255,0.65)' },
   faceFront: {
-    backgroundColor: C.surface,
-    borderColor: 'rgba(99,102,241,0.2)',
+    backgroundColor: colors.glassStrong,
+    borderColor: colors.glassBorderStrong,
   },
   langFlag: { fontSize: 13 },
   word: {
@@ -520,7 +523,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     const availableDiffs = level === 'B1' ? (['4x3'] as Difficulty[]) : (['4x3', '4x4'] as Difficulty[]);
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.hafiza} />
         {header('Almanca ↔ Türkçe')}
         <ScrollView contentContainerStyle={styles.startBody} showsVerticalScrollIndicator={false}>
           <Text style={styles.startIcon}>🃏</Text>
@@ -589,7 +592,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     const displayTime = completedTime ?? time;
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.hafiza} />
         {header(wasAbandoned ? 'Çözümler' : 'Tebrikler!', () => setPhase('start'))}
         {reportModal}
         <ScrollView contentContainerStyle={styles.resultScroll} showsVerticalScrollIndicator={false}>
@@ -649,7 +652,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
   if (phase === 'reviewing') {
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.hafiza} />
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => setPhase('start')}
@@ -682,7 +685,7 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
   // ── PLAYING ─────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground tint={gameAccent.hafiza} />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => setPhase('start')}
@@ -720,27 +723,26 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: 'rgba(99,102,241,0.07)' },
+  safe: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: 'rgba(99,102,241,0.07)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(99,102,241,0.2)',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   backBtn: {
-    backgroundColor: 'rgba(99,102,241,0.12)', borderRadius: 12,
+    backgroundColor: colors.glassStrong, borderRadius: 12,
     width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.3)',
+    borderWidth: 1, borderColor: colors.glassBorderStrong,
   },
-  backBtnText: { fontSize: 20, color: C.primary },
+  backBtnText: { fontSize: 20, color: colors.text },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
   headerSub: { fontSize: 12, color: C.textDim, marginTop: 2, letterSpacing: 0.2 },
   timerPill: {
-    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.35)', borderRadius: 20,
+    borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.4)', borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 6, minWidth: 62, alignItems: 'center',
-    backgroundColor: 'rgba(99,102,241,0.08)',
+    backgroundColor: 'rgba(129,140,248,0.12)',
   },
   timerText: { fontSize: 15, fontWeight: '800', color: C.primary, letterSpacing: 0.5 },
 
@@ -757,12 +759,11 @@ const styles = StyleSheet.create({
   startTitle: { fontSize: 24, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
   startSub: { fontSize: 13, color: C.textDim, textAlign: 'center', lineHeight: 19 },
   bestCard: {
-    width: '100%', backgroundColor: C.warningBg, borderRadius: 18,
+    width: '100%', backgroundColor: colors.goldSoft, borderRadius: 18,
     padding: 22, alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.warning,
-    shadowColor: C.warning, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: colors.goldBorder,
+    shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 4,
   },
   bestLabel: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
   bestTime: { fontSize: 36, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
@@ -781,27 +782,27 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   resultStatsCard: {
-    backgroundColor: C.surface, borderRadius: 20,
+    backgroundColor: 'rgba(129,140,248,0.1)', borderRadius: 20,
     padding: 24, alignItems: 'center', gap: 6,
-    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.18)',
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1, shadowRadius: 10, elevation: 3,
+    borderWidth: 1, borderColor: 'rgba(129,140,248,0.3)',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 14, elevation: 5,
   },
   resultIcon: { fontSize: 48, marginBottom: 4 },
   resultTimeNum: { fontSize: 56, fontWeight: '900', color: C.text, letterSpacing: -2 },
   resultTimeLabel: { fontSize: 15, fontWeight: '700', color: C.textDim, marginTop: -6 },
   resultMoves: { fontSize: 13, color: C.textFaint, fontWeight: '500' },
   newRecordBadge: {
-    backgroundColor: C.warningBg, borderRadius: 14,
+    backgroundColor: colors.goldSoft, borderRadius: 14,
     paddingHorizontal: 22, paddingVertical: 11,
-    borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.3)',
+    borderWidth: 1.5, borderColor: colors.goldBorder,
     marginTop: 4,
   },
-  newRecordText: { fontSize: 16, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
+  newRecordText: { fontSize: 16, fontWeight: '800', color: colors.gold, letterSpacing: 0.3 },
   prevRecord: {
     backgroundColor: C.primaryBg, borderRadius: 10,
     paddingHorizontal: 18, paddingVertical: 9,
-    borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)',
+    borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
     marginTop: 4,
   },
   prevRecordText: { fontSize: 13, color: C.textDim, fontWeight: '500' },
@@ -830,20 +831,21 @@ const styles = StyleSheet.create({
 
   // report modal
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    flex: 1, backgroundColor: colors.backdrop,
     justifyContent: 'center', alignItems: 'center', padding: 24,
   },
   modalBox: {
-    width: '100%', backgroundColor: C.surface, borderRadius: 20,
+    width: '100%', backgroundColor: colors.bgSheet, borderRadius: 20,
     padding: 24, gap: 14,
+    borderWidth: 1, borderColor: colors.glassBorderStrong,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18, shadowRadius: 24, elevation: 10,
+    shadowOpacity: 0.35, shadowRadius: 24, elevation: 10,
   },
   modalTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center' },
   modalWordBox: {
     backgroundColor: C.primaryBg, borderRadius: 12,
     padding: 12, alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)',
+    borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
   },
   modalWordDe: { fontSize: 16, fontWeight: '700', color: C.primary },
   modalWordTr: { fontSize: 13, color: C.textDim },
@@ -880,13 +882,12 @@ const styles = StyleSheet.create({
   actionBar: {
     flexDirection: 'row', justifyContent: 'flex-end',
     paddingHorizontal: 16, paddingVertical: 6,
-    backgroundColor: 'rgba(99,102,241,0.07)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(99,102,241,0.2)',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   finishBtn: {
-    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.35)',
+    borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.4)',
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6,
-    backgroundColor: 'rgba(99,102,241,0.08)',
+    backgroundColor: 'rgba(129,140,248,0.12)',
   },
   finishBtnText: { fontSize: 12, fontWeight: '700', color: C.primary, letterSpacing: 0.2 },
   continueBtn: {
@@ -894,7 +895,7 @@ const styles = StyleSheet.create({
     borderRadius: 14, paddingHorizontal: 14, paddingVertical: 7,
     backgroundColor: C.primary,
   },
-  continueBtnText: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  continueBtnText: { fontSize: 13, fontWeight: '700', color: '#081018', letterSpacing: 0.2 },
 
   diffRow: {
     flexDirection: 'row', gap: 10, width: '100%',

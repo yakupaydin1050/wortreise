@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, FlatList,
+  View, Text, StyleSheet, ScrollView, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,28 +10,52 @@ import {
 } from '../utils/storage';
 import { getWordEntries, wordsByLevel } from '../data/generateCard';
 import { ACHIEVEMENTS } from '../data/achievements';
-import GridBackground from '../components/GridBackground';
-
-const C = {
-  bg: '#FAF8F4',
-  surface: '#FFFFFF',
-  surface2: '#EEF1FF',
-  border: '#DDE3F5',
-  text: '#1A2340',
-  textDim: '#4E5C80',
-  textFaint: '#8896B8',
-  primary: '#3B5BDB',
-  primaryBg: 'rgba(59,91,219,0.10)',
-  success: '#1A9E6E',
-  successBg: 'rgba(26,158,110,0.12)',
-  warning: '#D97706',
-  danger: '#DC2626',
-};
+import { alpha, colors, gameAccent, levelAccent, radius, spacing, type } from '../theme';
+import { ScreenBackground, GlassPanel, PressableScale, SectionHeader, Pill } from '../components/ui';
 
 function fmtTime(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function GameStatPanel({
+  icon, title, sub, accent, best, cells,
+}: {
+  icon: string;
+  title: string;
+  sub: string;
+  accent: string;
+  best?: string | null;
+  cells: { value: string | number; label: string }[];
+}) {
+  return (
+    <GlassPanel padding={spacing.lg} style={styles.gamePanel}>
+      <View style={styles.gameHeader}>
+        <View style={[styles.gameIcon, {
+          backgroundColor: alpha(accent, 0.14), borderColor: alpha(accent, 0.3),
+        }]}>
+          <Text style={styles.gameIconText}>{icon}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.gameTitle}>{title}</Text>
+          <Text style={styles.gameSub}>{sub}</Text>
+        </View>
+        {best ? <Pill label={best} tint={colors.gold} /> : null}
+      </View>
+      <View style={styles.gameStatRow}>
+        {cells.map((c, i) => (
+          <React.Fragment key={c.label}>
+            {i > 0 && <View style={styles.gameStatDivider} />}
+            <View style={styles.gameStatItem}>
+              <Text style={styles.gameStatNum} numberOfLines={1}>{c.value}</Text>
+              <Text style={styles.gameStatLabel} numberOfLines={1}>{c.label}</Text>
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+    </GlassPanel>
+  );
 }
 
 export default function StatsScreen() {
@@ -56,25 +80,34 @@ export default function StatsScreen() {
   const unlockedIds = new Set(unlocked.map(u => u.id));
   const unlockedCount = unlockedIds.size;
 
+  const pct = (correct: number, answered: number) =>
+    answered > 0 ? `%${Math.round((correct / answered) * 100)}` : '—';
+
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground tint={levelAccent.B1} />
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'stats' && styles.tabBtnActive]}
-          onPress={() => setTab('stats')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabBtnText, tab === 'stats' && styles.tabBtnTextActive]}>📊  İstatistik</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'words' && styles.tabBtnActive]}
-          onPress={() => setTab('words')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabBtnText, tab === 'words' && styles.tabBtnTextActive]}>📚  Kelimeler</Text>
-        </TouchableOpacity>
+      <View style={styles.headerArea}>
+        <Text style={type.display}>Gelişim</Text>
+        {/* Segmented control */}
+        <View style={styles.segment}>
+          {([
+            { key: 'stats', label: '📊  İstatistik' },
+            { key: 'words', label: '📚  Kelimeler' },
+          ] as const).map(s => {
+            const active = tab === s.key;
+            return (
+              <PressableScale
+                key={s.key}
+                onPress={() => setTab(s.key)}
+                style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+                accessibilityLabel={s.label}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{s.label}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
       </View>
 
       <ScrollView
@@ -83,171 +116,69 @@ export default function StatsScreen() {
       >
         {tab === 'stats' && gameStats && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Oyun İstatistikleri</Text>
-
-            <View style={[styles.gameCard, styles.gameCardBlue]}>
-              <View style={styles.gameCardHeader}>
-                <Text style={styles.gameCardIcon}>🎯</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.gameCardTitle}>Artikel Savaşları</Text>
-                  <Text style={styles.gameCardSub}>{gameStats.artikel.sessions} oturum oynandı</Text>
-                </View>
-                {gameStats.artikel.bestStreak > 0 && (
-                  <View style={styles.gameBestBadge}>
-                    <Text style={styles.gameBestText}>🏆 {gameStats.artikel.bestStreak}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.gameStatRow}>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>{gameStats.artikel.totalAnswered}</Text>
-                  <Text style={styles.gameStatLabel}>Cevaplanan</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.artikel.totalAnswered > 0
-                      ? `%${Math.round((gameStats.artikel.totalCorrect / gameStats.artikel.totalAnswered) * 100)}`
-                      : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>Doğruluk</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.artikel.bestStreak > 0 ? `${gameStats.artikel.bestStreakSeconds}sn` : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>En İyi Süre</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={[styles.gameCard, styles.gameCardOrange]}>
-              <View style={styles.gameCardHeader}>
-                <Text style={styles.gameCardIcon}>🏹</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.gameCardTitle}>Kelime Avı</Text>
-                  <Text style={styles.gameCardSub}>{gameStats.kelimeAvi.sessions} oturum oynandı</Text>
-                </View>
-                {gameStats.kelimeAvi.bestStreak > 0 && (
-                  <View style={styles.gameBestBadge}>
-                    <Text style={styles.gameBestText}>🏆 {gameStats.kelimeAvi.bestStreak}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.gameStatRow}>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>{gameStats.kelimeAvi.totalAnswered}</Text>
-                  <Text style={styles.gameStatLabel}>Cevaplanan</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.kelimeAvi.totalAnswered > 0
-                      ? `%${Math.round((gameStats.kelimeAvi.totalCorrect / gameStats.kelimeAvi.totalAnswered) * 100)}`
-                      : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>Doğruluk</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.kelimeAvi.bestStreak > 0 ? `${gameStats.kelimeAvi.bestStreakSeconds}sn` : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>En İyi Süre</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={[styles.gameCard, styles.gameCardGreen]}>
-              <View style={styles.gameCardHeader}>
-                <Text style={styles.gameCardIcon}>🔗</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.gameCardTitle}>Eşleştirme</Text>
-                  <Text style={styles.gameCardSub}>{gameStats.eslestirme.sessions} tur oynandı</Text>
-                </View>
-                {gameStats.eslestirme.bestTime > 0 && (
-                  <View style={styles.gameBestBadge}>
-                    <Text style={styles.gameBestText}>⚡ {gameStats.eslestirme.bestTime}sn</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.gameStatRow}>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>{gameStats.eslestirme.totalPairs}</Text>
-                  <Text style={styles.gameStatLabel}>Toplam Eşleşme</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.eslestirme.bestTime > 0 ? `${gameStats.eslestirme.bestTime}sn` : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>En İyi Süre</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>{gameStats.eslestirme.sessions}</Text>
-                  <Text style={styles.gameStatLabel}>Tur</Text>
-                </View>
-              </View>
-            </View>
-            <View style={[styles.gameCard, styles.gameCardRed]}>
-              <View style={styles.gameCardHeader}>
-                <Text style={styles.gameCardIcon}>🃏</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.gameCardTitle}>Hafıza</Text>
-                  <Text style={styles.gameCardSub}>{gameStats.hafiza.sessions} oyun tamamlandı</Text>
-                </View>
-                {gameStats.hafiza.bestTime > 0 && (
-                  <View style={styles.gameBestBadge}>
-                    <Text style={styles.gameBestText}>⚡ {fmtTime(gameStats.hafiza.bestTime)}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.gameStatRow}>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>{gameStats.hafiza.sessions}</Text>
-                  <Text style={styles.gameStatLabel}>Oyun</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.hafiza.bestTime > 0 ? fmtTime(gameStats.hafiza.bestTime) : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>En İyi Süre</Text>
-                </View>
-                <View style={styles.gameStatDivider} />
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatNum}>
-                    {gameStats.hafiza.bestMoves > 0 ? `${gameStats.hafiza.bestMoves}` : '—'}
-                  </Text>
-                  <Text style={styles.gameStatLabel}>En İyi Deneme</Text>
-                </View>
-              </View>
-            </View>
+            <SectionHeader title="Oyun İstatistikleri" />
+            <GameStatPanel
+              icon="🎯" title="Artikel Savaşları" accent={gameAccent.artikel}
+              sub={`${gameStats.artikel.sessions} oturum oynandı`}
+              best={gameStats.artikel.bestStreak > 0 ? `🏆 ${gameStats.artikel.bestStreak}` : null}
+              cells={[
+                { value: gameStats.artikel.totalAnswered, label: 'Cevaplanan' },
+                { value: pct(gameStats.artikel.totalCorrect, gameStats.artikel.totalAnswered), label: 'Doğruluk' },
+                { value: gameStats.artikel.bestStreak > 0 ? `${gameStats.artikel.bestStreakSeconds}sn` : '—', label: 'En İyi Süre' },
+              ]}
+            />
+            <GameStatPanel
+              icon="🏹" title="Kelime Avı" accent={gameAccent.kelimeAvi}
+              sub={`${gameStats.kelimeAvi.sessions} oturum oynandı`}
+              best={gameStats.kelimeAvi.bestStreak > 0 ? `🏆 ${gameStats.kelimeAvi.bestStreak}` : null}
+              cells={[
+                { value: gameStats.kelimeAvi.totalAnswered, label: 'Cevaplanan' },
+                { value: pct(gameStats.kelimeAvi.totalCorrect, gameStats.kelimeAvi.totalAnswered), label: 'Doğruluk' },
+                { value: gameStats.kelimeAvi.bestStreak > 0 ? `${gameStats.kelimeAvi.bestStreakSeconds}sn` : '—', label: 'En İyi Süre' },
+              ]}
+            />
+            <GameStatPanel
+              icon="🔗" title="Eşleştirme" accent={gameAccent.matching}
+              sub={`${gameStats.eslestirme.sessions} tur oynandı`}
+              best={gameStats.eslestirme.bestTime > 0 ? `⚡ ${gameStats.eslestirme.bestTime}sn` : null}
+              cells={[
+                { value: gameStats.eslestirme.totalPairs, label: 'Toplam Eşleşme' },
+                { value: gameStats.eslestirme.bestTime > 0 ? `${gameStats.eslestirme.bestTime}sn` : '—', label: 'En İyi Süre' },
+                { value: gameStats.eslestirme.sessions, label: 'Tur' },
+              ]}
+            />
+            <GameStatPanel
+              icon="🃏" title="Hafıza" accent={gameAccent.hafiza}
+              sub={`${gameStats.hafiza.sessions} oyun tamamlandı`}
+              best={gameStats.hafiza.bestTime > 0 ? `⚡ ${fmtTime(gameStats.hafiza.bestTime)}` : null}
+              cells={[
+                { value: gameStats.hafiza.sessions, label: 'Oyun' },
+                { value: gameStats.hafiza.bestTime > 0 ? fmtTime(gameStats.hafiza.bestTime) : '—', label: 'En İyi Süre' },
+                { value: gameStats.hafiza.bestMoves > 0 ? `${gameStats.hafiza.bestMoves}` : '—', label: 'En İyi Deneme' },
+              ]}
+            />
           </View>
         )}
 
         {tab === 'stats' && (
           <View style={styles.section}>
-            <View style={styles.achHeader}>
-              <Text style={styles.sectionTitle}>Rozetler</Text>
-              <Text style={styles.achCount}>{unlockedCount} / {ACHIEVEMENTS.length}</Text>
-            </View>
+            <SectionHeader title="Rozetler" trailing={`${unlockedCount} / ${ACHIEVEMENTS.length}`} spaced />
             <View style={styles.achGrid}>
               {ACHIEVEMENTS.map(a => {
                 const isUnlocked = unlockedIds.has(a.id);
                 return (
-                  <View
+                  <GlassPanel
                     key={a.id}
-                    style={[styles.achCard, isUnlocked ? styles.achCardUnlocked : styles.achCardLocked]}
+                    padding={spacing.lg}
+                    tint={isUnlocked ? colors.gold : undefined}
+                    style={[styles.achCard, !isUnlocked && styles.achCardLocked]}
                   >
-                    <Text style={[styles.achEmoji, !isUnlocked && styles.achEmojiLocked]}>
+                    <Text style={[styles.achEmoji, !isUnlocked && { opacity: 0.5 }]}>
                       {isUnlocked ? a.emoji : '🔒'}
                     </Text>
-                    <Text style={[styles.achTitle, !isUnlocked && styles.achTitleLocked]}>{a.title}</Text>
+                    <Text style={[styles.achTitle, !isUnlocked && { color: colors.textFaint }]}>{a.title}</Text>
                     <Text style={styles.achDesc}>{a.desc}</Text>
-                  </View>
+                  </GlassPanel>
                 );
               })}
             </View>
@@ -256,50 +187,47 @@ export default function StatsScreen() {
 
         {tab === 'words' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kelime Havuzu</Text>
+            <SectionHeader title="Kelime Havuzu" />
             {(['A1', 'A2', 'B1'] as LevelId[]).map(lvl => {
               const lvlProgress = progress?.[lvl];
               const isActive = wordsByLevel[lvl].length > 0;
               const mastered = lvlProgress?.masteredIds.length ?? 0;
               const review = lvlProgress?.wrongIds.length ?? 0;
+              const accent = levelAccent[lvl];
               return (
-                <View key={lvl} style={styles.levelPoolBlock}>
-                  <View style={styles.levelPoolHeader}>
-                    <View style={[styles.levelPoolBadge, !isActive && styles.levelPoolBadgeDim]}>
-                      <Text style={[styles.levelPoolBadgeText, !isActive && styles.levelPoolBadgeTextDim]}>{lvl}</Text>
-                    </View>
-                    {!isActive && (
-                      <Text style={styles.levelPoolSoon}>YAKINDA</Text>
-                    )}
+                <View key={lvl} style={styles.poolBlock}>
+                  <View style={styles.poolHeader}>
+                    <Pill label={lvl} tint={isActive ? accent : colors.textFaint} solid={isActive} />
+                    {!isActive && <Text style={styles.poolSoon}>YAKINDA</Text>}
                   </View>
-                  <TouchableOpacity
-                    style={[styles.wordPoolCard, styles.wordPoolCardGreen, !isActive && styles.wordPoolCardDisabled]}
+                  <PressableScale
                     onPress={() => isActive && setActiveModal({ type: 'mastered', level: lvl })}
-                    activeOpacity={isActive ? 0.8 : 1}
+                    disabled={!isActive}
+                    accessibilityLabel={`${lvl} öğrenilen kelimeler`}
                   >
-                    <View style={styles.wordPoolInner}>
-                      <Text style={styles.wordPoolIcon}>✓</Text>
+                    <GlassPanel padding={spacing.lg} raised={isActive} tint={colors.success} style={[styles.poolCard, !isActive && styles.poolCardDisabled]}>
+                      <Text style={[styles.poolIcon, { color: colors.success }]}>✓</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.wordPoolTitle}>Öğrenilen Kelimeler</Text>
-                        <Text style={styles.wordPoolSub}>{mastered} kelime öğrenildi</Text>
+                        <Text style={[styles.poolTitle, { color: colors.success }]}>Öğrenilen Kelimeler</Text>
+                        <Text style={styles.poolSub}>{mastered} kelime öğrenildi</Text>
                       </View>
-                    </View>
-                    {isActive && <Text style={[styles.wordPoolChevron, { color: C.success }]}>›</Text>}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.wordPoolCard, styles.wordPoolCardRed, !isActive && styles.wordPoolCardDisabled]}
+                      {isActive && <Text style={[styles.chevron, { color: colors.success }]}>›</Text>}
+                    </GlassPanel>
+                  </PressableScale>
+                  <PressableScale
                     onPress={() => isActive && setActiveModal({ type: 'wrong', level: lvl })}
-                    activeOpacity={isActive ? 0.8 : 1}
+                    disabled={!isActive}
+                    accessibilityLabel={`${lvl} tekrar çalışılacaklar`}
                   >
-                    <View style={styles.wordPoolInner}>
-                      <Text style={styles.wordPoolIcon}>↺</Text>
+                    <GlassPanel padding={spacing.lg} raised={isActive} tint={colors.danger} style={[styles.poolCard, !isActive && styles.poolCardDisabled]}>
+                      <Text style={[styles.poolIcon, { color: colors.danger }]}>↺</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.wordPoolTitle, { color: C.danger }]}>Tekrar Çalışılacaklar</Text>
-                        <Text style={styles.wordPoolSub}>{review} kelime tekrar bekliyor</Text>
+                        <Text style={[styles.poolTitle, { color: colors.danger }]}>Tekrar Çalışılacaklar</Text>
+                        <Text style={styles.poolSub}>{review} kelime tekrar bekliyor</Text>
                       </View>
-                    </View>
-                    {isActive && <Text style={[styles.wordPoolChevron, { color: C.danger }]}>›</Text>}
-                  </TouchableOpacity>
+                      {isActive && <Text style={[styles.chevron, { color: colors.danger }]}>›</Text>}
+                    </GlassPanel>
+                  </PressableScale>
                 </View>
               );
             })}
@@ -316,18 +244,20 @@ export default function StatsScreen() {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {activeModal?.type === 'mastered'
                   ? `✓ ${activeModal.level} — Öğrenilen Kelimeler`
                   : `↺ ${activeModal?.level} — Tekrar Çalışılacaklar`}
               </Text>
-              <TouchableOpacity
+              <PressableScale
                 onPress={() => setActiveModal(null)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Kapat"
               >
                 <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
 
             {(() => {
@@ -376,170 +306,92 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  tabBar: {
-    flexDirection: 'row', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    backgroundColor: C.bg,
+  safe: { flex: 1, backgroundColor: colors.bg },
+  headerArea: {
+    paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.lg,
   },
-  tabBtn: {
-    flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
-    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+  segment: {
+    flexDirection: 'row', gap: spacing.xs,
+    backgroundColor: colors.glass,
+    borderWidth: 1, borderColor: colors.glassBorder,
+    borderRadius: radius.md, padding: 4,
   },
-  tabBtnActive: {
-    backgroundColor: C.primary, borderColor: C.primary,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
+  segmentBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: radius.sm, alignItems: 'center',
   },
-  tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  tabBtnTextActive: { color: '#FFFFFF', fontWeight: '800' },
-  container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 24 },
+  segmentBtnActive: {
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1, borderColor: colors.primaryBorder,
+  },
+  segmentText: { fontSize: 13.5, fontWeight: '700', color: colors.textFaint, letterSpacing: 0.2 },
+  segmentTextActive: { color: colors.text },
 
-  section: { gap: 10 },
-  sectionTitle: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3 },
+  container: {
+    paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: 56, gap: spacing.xxl,
+  },
+  section: { gap: spacing.md },
 
-  gameCard: {
-    borderRadius: 18, padding: 16,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
+  gamePanel: { gap: spacing.md },
+  gameHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  gameIcon: {
+    width: 44, height: 44, borderRadius: radius.sm,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
   },
-  gameCardBlue: {
-    backgroundColor: 'rgba(59,91,219,0.07)',
-    borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary,
-  },
-  gameCardOrange: {
-    backgroundColor: 'rgba(217,119,6,0.07)',
-    borderColor: 'rgba(217,119,6,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.warning,
-    shadowColor: C.warning,
-  },
-  gameCardGreen: {
-    backgroundColor: 'rgba(26,158,110,0.07)',
-    borderColor: 'rgba(26,158,110,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.success,
-    shadowColor: C.success,
-  },
-  gameCardRed: {
-    backgroundColor: 'rgba(220,38,38,0.06)',
-    borderColor: 'rgba(220,38,38,0.22)',
-    borderLeftWidth: 4, borderLeftColor: C.danger,
-    shadowColor: C.danger,
-  },
-  gameCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  gameCardIcon: { fontSize: 26 },
-  gameCardTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
-  gameCardSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', marginTop: 1 },
-  gameBestBadge: {
-    backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 10,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
-  },
-  gameBestText: { fontSize: 13, fontWeight: '800', color: C.warning },
+  gameIconText: { fontSize: 20 },
+  gameTitle: { ...type.heading, fontSize: 15.5 },
+  gameSub: { ...type.caption, marginTop: 1 },
   gameStatRow: {
     flexDirection: 'row', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: C.border,
-    paddingTop: 12, marginTop: 2,
+    borderTopWidth: 1, borderTopColor: colors.glassBorder, paddingTop: spacing.md,
   },
   gameStatItem: { flex: 1, alignItems: 'center', gap: 3 },
-  gameStatNum: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  gameStatLabel: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3, textAlign: 'center' },
-  gameStatDivider: { width: 1, height: 32, backgroundColor: C.border },
+  gameStatNum: { ...type.numeral, fontSize: 20 },
+  gameStatLabel: { fontSize: 11.5, fontWeight: '600', color: colors.textFaint, letterSpacing: 0.3 },
+  gameStatDivider: { width: 1, height: 30, backgroundColor: colors.glassBorder },
 
-  levelPoolBlock: { gap: 8 },
-  levelPoolHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 2 },
-  levelPoolBadge: {
-    backgroundColor: C.primary, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 4,
-  },
-  levelPoolBadgeDim: { backgroundColor: C.border },
-  levelPoolBadgeText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  levelPoolBadgeTextDim: { color: C.textFaint },
-  levelPoolSoon: { fontSize: 10, fontWeight: '700', color: C.warning, letterSpacing: 1 },
+  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  achCard: { width: '47.5%', flexGrow: 1, gap: 6 },
+  achCardLocked: { opacity: 0.55 },
+  achEmoji: { fontSize: 30 },
+  achTitle: { fontSize: 13, fontWeight: '800', color: colors.text, letterSpacing: 0.1 },
+  achDesc: { fontSize: 11, color: colors.textFaint, fontWeight: '400', lineHeight: 15 },
 
-  wordPoolCard: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 18, paddingVertical: 16,
-    borderRadius: 16, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  wordPoolCardDisabled: { opacity: 0.45 },
-  wordPoolCardGreen: {
-    backgroundColor: 'rgba(26,158,110,0.07)',
-    borderColor: 'rgba(26,158,110,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.success,
-  },
-  wordPoolCardRed: {
-    backgroundColor: 'rgba(220,38,38,0.06)',
-    borderColor: 'rgba(220,38,38,0.22)',
-    borderLeftWidth: 4, borderLeftColor: C.danger,
-  },
-  wordPoolInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  wordPoolIcon: { fontSize: 22, color: C.textDim, width: 24, textAlign: 'center' },
-  wordPoolTitle: { fontSize: 15, fontWeight: '700', color: C.success, marginBottom: 2, letterSpacing: 0.1 },
-  wordPoolSub: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
-  wordPoolChevron: { fontSize: 24, fontWeight: '300', marginLeft: 10, lineHeight: 28, opacity: 0.6 },
+  poolBlock: { gap: spacing.sm, marginBottom: spacing.md },
+  poolHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 2 },
+  poolSoon: { fontSize: 10, fontWeight: '700', color: colors.warning, letterSpacing: 1 },
+  poolCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  poolCardDisabled: { opacity: 0.45 },
+  poolIcon: { fontSize: 22, width: 26, textAlign: 'center', fontWeight: '700' },
+  poolTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2, letterSpacing: 0.1 },
+  poolSub: { ...type.caption },
+  chevron: { fontSize: 24, fontWeight: '400', opacity: 0.7 },
 
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)',
-    justifyContent: 'flex-end',
-  },
+  modalBackdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderWidth: 1, borderColor: C.border, borderBottomWidth: 0,
+    backgroundColor: colors.bgSheet,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    borderWidth: 1, borderColor: colors.glassBorderStrong, borderBottomWidth: 0,
     maxHeight: '75%',
     paddingBottom: 32,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: colors.glassBorderStrong, alignSelf: 'center', marginTop: 10,
   },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
-  modalTitle: { fontSize: 16, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
-  modalCloseText: { fontSize: 18, color: C.textFaint, fontWeight: '600' },
+  modalTitle: { fontSize: 16, fontWeight: '800', color: colors.text, letterSpacing: 0.2 },
+  modalCloseText: { fontSize: 18, color: colors.textDim, fontWeight: '600' },
   modalEmpty: { paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' },
-  modalEmptyText: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
-  modalList: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  modalEmptyText: { fontSize: 14, color: colors.textDim, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+  modalList: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg },
   wordRow: {
     paddingVertical: 12, paddingHorizontal: 4,
-    borderBottomWidth: 1, borderBottomColor: C.border, gap: 3,
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder, gap: 3,
   },
-  wordText: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
-  wordExample: { fontSize: 12, color: C.textFaint, fontStyle: 'italic', letterSpacing: 0.1 },
-
-  // Achievements
-  achHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  achCount: { fontSize: 12, fontWeight: '700', color: C.textFaint, letterSpacing: 0.5 },
-  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  achCard: {
-    width: '47%',
-    borderRadius: 16, padding: 14, gap: 6,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
-  },
-  achCardUnlocked: {
-    backgroundColor: C.primaryBg,
-    borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary,
-  },
-  achCardLocked: {
-    backgroundColor: C.surface,
-    borderColor: C.border,
-    shadowColor: '#000',
-    opacity: 0.55,
-  },
-  achEmoji: { fontSize: 30 },
-  achEmojiLocked: { opacity: 0.5 },
-  achTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
-  achTitleLocked: { color: C.textFaint },
-  achDesc: { fontSize: 11, color: C.textFaint, fontWeight: '400', lineHeight: 15 },
+  wordText: { fontSize: 16, fontWeight: '700', color: colors.text, letterSpacing: 0.1 },
+  wordExample: { fontSize: 12, color: colors.textFaint, fontStyle: 'italic', letterSpacing: 0.1 },
 });

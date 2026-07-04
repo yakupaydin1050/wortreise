@@ -8,23 +8,25 @@ import {
 const SCREEN_W = Dimensions.get('window').width;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveProfile } from '../utils/storage';
-import GridBackground from '../components/GridBackground';
+import { colors } from '../theme';
+import { ScreenBackground } from '../components/ui';
 import { POLICY_CONTENT, PolicyType, PolicyLang } from '../data/policies';
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  bg: '#FAF8F4',
-  surface: '#FFFFFF',
-  surface2: '#EEF1FF',
-  border: '#DDE3F5',
-  borderBright: '#B8C4E8',
-  primary: '#3B5BDB',
-  primaryBg: 'rgba(59,91,219,0.10)',
-  warning: '#D97706',
-  success: '#1A9E6E',
-  text: '#1A2340',
-  textDim: '#4E5C80',
-  textFaint: '#8896B8',
-  danger: '#DC2626',
+  bg: colors.bg,
+  surface: colors.glass,
+  surface2: colors.glassStrong,
+  border: colors.glassBorder,
+  borderBright: colors.glassBorderStrong,
+  primary: colors.primary,
+  primaryBg: colors.primarySoft,
+  warning: colors.gold,
+  success: colors.success,
+  text: colors.text,
+  textDim: colors.textDim,
+  textFaint: colors.textFaint,
+  danger: colors.danger,
 };
 
 const SLIDES = [
@@ -35,7 +37,7 @@ const SLIDES = [
     subtitle: 'Almancayı adım adım öğren',
     desc: 'Her gün küçük bir adım. Günlük kartlar, eğlenceli oyunlar ve streak takibiyle Almanca öğrenmek artık çok daha kolay.',
     quote: '„Wer sichere Schritte tun will, muss sie langsam tun." — Goethe',
-    accent: '#3B5BDB',
+    accent: '#7C8CF8',
   },
   {
     emoji: '📝',
@@ -43,7 +45,7 @@ const SLIDES = [
     subtitle: 'Doğru kelimeyi bul',
     desc: 'Almanca cümlede eksik kelimeyi bul. 4 seçenekten birini seç — doğru yaparsan öğrenilmiş, yanlış yaparsan tekrar listene girer.',
     visual: 'Ich _____ Deutsch.\n① lerne  ② esse  ③ schlafe  ④ spiele',
-    accent: '#D97706',
+    accent: '#FBBF24',
   },
   {
     emoji: '🔗',
@@ -51,7 +53,7 @@ const SLIDES = [
     subtitle: 'Sürükle ve eşleştir',
     desc: 'Sol tarafta Almanca, sağ tarafta Türkçe. Doğru çifti bul ve birbirine bağla. Ne kadar hızlı tamamlayabilirsin?',
     visual: 'Hund  ——  Köpek\nKatze ——  Kedi',
-    accent: '#7C3AED',
+    accent: '#A78BFA',
   },
   {
     emoji: '🃏',
@@ -59,7 +61,7 @@ const SLIDES = [
     subtitle: 'Çevir ve eşleştir',
     desc: 'Yüzü kapalı kartları çevir, Almanca-Türkçe çiftleri bul. Hafızanı zorlayan, tekrar ettiren bir klasik.',
     visual: '🟦 🟦 🟦\n🟦 🟩 🟦\n🟦 🟦 🟦',
-    accent: '#0EA5E9',
+    accent: '#38BDF8',
   },
   {
     emoji: '🎯',
@@ -67,7 +69,7 @@ const SLIDES = [
     subtitle: 'Hızlı düşün, doğru seç',
     desc: 'Ekranda beliren kelimeleri hızlıca değerlendir — doğruysa al, yanlışsa bırak. Reflekslerini ve kelime bilgini aynı anda sına.',
     visual: '✅ der Apfel\n❌ die Buch\n✅ das Kind',
-    accent: '#E11D48',
+    accent: '#FB7185',
   },
   {
     emoji: '🏷️',
@@ -75,21 +77,21 @@ const SLIDES = [
     subtitle: 'der • die • das',
     desc: 'Almancada her ismin bir artikeli var. Kartlar geliyor — sen karar ver. Tekrar ettikçe içgüdüye dönüşür.',
     visual: 'der 🧑  die 🌹  das 🏠\nHangi artikel?',
-    accent: '#F59E0B',
+    accent: '#F5B04C',
   },
   {
     emoji: '🔥',
     title: 'Streak Kur',
     subtitle: 'Her gün bir adım at',
     desc: 'Günlük hedefini belirle ve her gün tamamla. Streak\'in arttıkça motivasyonun da artar. Tek bir gün bile yeterli.',
-    accent: '#DC2626',
+    accent: '#F87171',
   },
   {
     emoji: '🏆',
     title: 'A1, A2, B1',
     subtitle: 'Kendi seviyenden başla',
     desc: 'Temel A1\'den ileri B1\'e uzanan yüzlerce kelime seni bekliyor. Seviyeni seç, kendi hızında ilerle.',
-    accent: '#1A9E6E',
+    accent: '#3DDC97',
   },
 ];
 
@@ -167,7 +169,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
     const slide = SLIDES[slideIndex];
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground />
         <Animated.View style={[styles.slideFlex, { opacity: fadeAnim }]}>
           {/* Top row */}
           <View style={styles.slideTopRow}>
@@ -250,7 +252,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -273,7 +275,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
             <Text style={styles.heroQuote}>„Aller Anfang ist schwer!"</Text>
           </View>
 
-          <View style={[styles.sectionCard, { backgroundColor: 'rgba(59,91,219,0.07)', borderColor: 'rgba(59,91,219,0.28)' }]}>
+          <View style={[styles.sectionCard, { backgroundColor: 'rgba(124,140,248,0.08)', borderColor: 'rgba(124,140,248,0.3)' }]}>
             <View style={[styles.sectionAccent, { backgroundColor: C.primary }]} />
             <View style={styles.sectionInner}>
               <View style={styles.labelRow}>
@@ -297,7 +299,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
             </View>
           </View>
 
-          <View style={[styles.sectionCard, { backgroundColor: 'rgba(217,119,6,0.07)', borderColor: 'rgba(217,119,6,0.28)' }]}>
+          <View style={[styles.sectionCard, { backgroundColor: 'rgba(245,176,76,0.08)', borderColor: 'rgba(245,176,76,0.3)' }]}>
             <View style={[styles.sectionAccent, { backgroundColor: C.warning }]} />
             <View style={styles.sectionInner}>
               <Text style={styles.label}>GÜNLÜK KAÇ KART ÇÖZMEK İSTERSİN?</Text>
@@ -324,7 +326,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
             </View>
           </View>
 
-          <View style={[styles.sectionCard, { backgroundColor: 'rgba(26,158,110,0.07)', borderColor: 'rgba(26,158,110,0.28)' }]}>
+          <View style={[styles.sectionCard, { backgroundColor: 'rgba(61,220,151,0.08)', borderColor: 'rgba(61,220,151,0.3)' }]}>
             <View style={[styles.sectionAccent, { backgroundColor: C.success }]} />
             <View style={styles.sectionInner}>
               <Text style={styles.label}>AVATARINI SEÇ</Text>
@@ -511,9 +513,9 @@ const styles = StyleSheet.create({
   },
   slideIconCard: {
     width: 140, height: 140, borderRadius: 36,
-    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08, shadowRadius: 20, elevation: 4,
+    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 22, elevation: 6,
     marginBottom: 8,
   },
   slideEmoji: { fontSize: 72, lineHeight: 88 },
@@ -540,7 +542,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25, shadowRadius: 14, elevation: 5,
   },
-  slideBtnText: { fontSize: 17, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.4 },
+  slideBtnText: { fontSize: 17, fontWeight: '800', color: '#081018', letterSpacing: 0.4 },
 
   // Setup form (existing)
   container: { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48, gap: 36 },
@@ -580,10 +582,10 @@ const styles = StyleSheet.create({
   labelRequired: { fontSize: 12, fontWeight: '700', color: C.danger },
   inputHint: { fontSize: 12, color: C.danger, fontWeight: '500', marginTop: -4 },
   input: {
-    backgroundColor: C.surface2,
+    backgroundColor: 'rgba(8,12,24,0.55)',
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 17, color: C.text, fontWeight: '500', letterSpacing: 0.2,
-    borderWidth: 1.5, borderColor: C.borderBright,
+    borderWidth: 1, borderColor: C.borderBright,
   },
 
   goalGrid: { flexDirection: 'row', gap: 10 },
@@ -636,9 +638,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.primary, borderRadius: 14, paddingVertical: 18, alignItems: 'center',
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 14, elevation: 6,
+    shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
-  startBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0 },
+  startBtnDisabled: { backgroundColor: '#252B48', shadowOpacity: 0 },
   startBtnText: { fontSize: 17, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
 
   footer: {
@@ -677,10 +679,10 @@ const styles = StyleSheet.create({
 
   // Modal bottom sheet
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end',
   },
   bottomSheet: {
-    backgroundColor: C.surface,
+    backgroundColor: colors.bgSheet,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 0,
     maxHeight: '88%',

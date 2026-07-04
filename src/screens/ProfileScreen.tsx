@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Share, Linking,
-  TouchableWithoutFeedback, Platform, Switch,
+  View, Text, StyleSheet, ScrollView, TextInput, Alert, Modal, Share, Linking,
+  TouchableWithoutFeedback, Platform, Switch, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,8 +16,12 @@ import {
   loadNotifPrefs, saveNotifPrefs, requestNotifPermission, getNotifPermissionStatus,
   scheduleDailyNotif, cancelDailyNotif, NotifPrefs, NOTIF_TIME_PRESETS,
 } from '../utils/notifications';
-import { saveHapticsEnabled, getHapticsEnabled } from '../utils/haptics';
+import { saveHapticsEnabled, getHapticsEnabled, triggerSelect } from '../utils/haptics';
 import { saveSoundEnabled, getSoundEnabled } from '../utils/sound';
+import { alpha, colors, radius, spacing, type } from '../theme';
+import {
+  ScreenBackground, GlassPanel, PressableScale, SectionHeader, ProgressBar, InteractiveButton, Pill,
+} from '../components/ui';
 
 const AVATARS = [
   '👨', '👩', '🧑', '👦', '👧', '👴', '👵', '🧔',
@@ -26,35 +30,44 @@ const AVATARS = [
   '🧙‍♂️', '🧙‍♀️', '🦸', '🦸‍♀️', '🤖', '👽', '🎃', '🧟',
   '🦊', '🐼', '🐸', '🦁', '🐯', '🦝', '🐨', '🦦',
 ];
-import GridBackground from '../components/GridBackground';
-
-const C = {
-  bg: '#FAF8F4',
-  surface: '#FFFFFF',
-  surface2: '#EEF1FF',
-  border: '#DDE3F5',
-  borderBright: '#B8C4E8',
-  primary: '#3B5BDB',
-  primaryBg: 'rgba(59,91,219,0.10)',
-  text: '#1A2340',
-  textDim: '#4E5C80',
-  textFaint: '#8896B8',
-  success: '#1A9E6E',
-  successBg: 'rgba(26,158,110,0.12)',
-  warning: '#D97706',
-  danger: '#DC2626',
-  resetColor: '#B45E2A',
-  logoutColor: '#A33050',
-};
 
 const GOAL_OPTIONS = [5, 15, 25];
 
 function StatBox({ value, label }: { value: string | number; label: string }) {
   return (
-    <View style={styles.statBox}>
-      <Text style={styles.statValue}>{value}</Text>
+    <GlassPanel padding={spacing.lg} style={styles.statBox}>
+      <Text style={[type.numeral, { fontSize: 24 }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    </GlassPanel>
+  );
+}
+
+function SettingsRow({
+  icon, title, sub, tint, onPress, chevron = true,
+}: {
+  icon: string;
+  title: string;
+  sub: string;
+  tint?: string;
+  onPress: () => void;
+  chevron?: boolean;
+}) {
+  const accent = tint ?? colors.primary;
+  return (
+    <PressableScale onPress={onPress} accessibilityLabel={title}>
+      <GlassPanel padding={spacing.lg} raised tint={accent} style={styles.rowCard}>
+        <View style={[styles.rowIcon, {
+          backgroundColor: alpha(accent, 0.12), borderColor: alpha(accent, 0.28),
+        }]}>
+          <Text style={styles.rowIconText}>{icon}</Text>
+        </View>
+        <View style={styles.rowTextWrap}>
+          <Text style={[styles.rowTitle, tint ? { color: tint } : null]}>{title}</Text>
+          <Text style={styles.rowSub}>{sub}</Text>
+        </View>
+        {chevron && <Text style={[styles.chevron, { color: accent }]}>›</Text>}
+      </GlassPanel>
+    </PressableScale>
   );
 }
 
@@ -129,6 +142,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   }
 
   async function handleNotifTimeChange(hour: number, minute: number) {
+    triggerSelect();
     const updated: NotifPrefs = { ...notifPrefs, hour, minute };
     setNotifPrefs(updated);
     await saveNotifPrefs(updated);
@@ -239,24 +253,28 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground />
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'profile' && styles.tabBtnActive]}
-          onPress={() => setTab('profile')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabBtnText, tab === 'profile' && styles.tabBtnTextActive]}>👤  Profil</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'settings' && styles.tabBtnActive]}
-          onPress={() => setTab('settings')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabBtnText, tab === 'settings' && styles.tabBtnTextActive]}>⚙️  Ayarlar</Text>
-        </TouchableOpacity>
+      <View style={styles.headerArea}>
+        <Text style={type.display}>Profil</Text>
+        <View style={styles.segment}>
+          {([
+            { key: 'profile', label: '👤  Profil' },
+            { key: 'settings', label: '⚙️  Ayarlar' },
+          ] as const).map(s => {
+            const active = tab === s.key;
+            return (
+              <PressableScale
+                key={s.key}
+                onPress={() => setTab(s.key)}
+                style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+                accessibilityLabel={s.label}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{s.label}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
       </View>
 
       <ScrollView
@@ -267,9 +285,9 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         {tab === 'profile' && (
           <>
             {editing ? (
-              <View style={styles.editCard}>
+              <GlassPanel emphasis="strong" style={styles.editCard}>
                 <Text style={styles.editTitle}>Profili Düzenle</Text>
-                <Text style={styles.editLabel}>KULLANICI ADI</Text>
+                <Text style={type.label}>Kullanıcı Adı</Text>
                 <TextInput
                   style={styles.editInput}
                   value={editName}
@@ -277,112 +295,104 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                   autoCapitalize="words"
                   maxLength={24}
                   autoFocus
-                  placeholderTextColor={C.textFaint}
-                  selectionColor={C.primary}
+                  placeholderTextColor={colors.textFaint}
+                  selectionColor={colors.primary}
                 />
-                <Text style={styles.editLabel}>AVATAR</Text>
-                <TouchableOpacity
-                  style={styles.avatarTrigger}
-                  onPress={() => setAvatarSheetVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.avatarTriggerCircle, editAvatar && editAvatar !== '👤' ? styles.avatarTriggerCircleSelected : {}]}>
-                    <Text style={styles.avatarTriggerEmoji}>{editAvatar || '?'}</Text>
-                  </View>
-                  <View style={styles.avatarTriggerInfo}>
-                    <Text style={styles.avatarTriggerTitle}>
-                      {editAvatar && editAvatar !== '👤' ? 'Avatar seçildi' : 'Avatar seç'}
-                    </Text>
-                    <Text style={styles.avatarTriggerHint}>Değiştirmek için dokun</Text>
-                  </View>
-                  <Text style={styles.avatarTriggerArrow}>›</Text>
-                </TouchableOpacity>
-                <Text style={styles.editLabel}>GÜNLÜK HEDEF</Text>
-                <View style={styles.goalRow}>
-                  {GOAL_OPTIONS.map(g => (
-                    <TouchableOpacity
-                      key={g}
-                      style={[styles.goalChip, editGoal === g && styles.goalChipActive]}
-                      onPress={() => setEditGoal(g)}
-                    >
-                      <Text style={[styles.goalChipText, editGoal === g && styles.goalChipTextActive]}>
-                        {g} kart
+                <Text style={type.label}>Avatar</Text>
+                <PressableScale onPress={() => setAvatarSheetVisible(true)} accessibilityLabel="Avatar seç">
+                  <View style={styles.avatarTrigger}>
+                    <View style={[
+                      styles.avatarTriggerCircle,
+                      editAvatar && editAvatar !== '👤' && styles.avatarTriggerCircleSelected,
+                    ]}>
+                      <Text style={styles.avatarTriggerEmoji}>{editAvatar || '?'}</Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.avatarTriggerTitle}>
+                        {editAvatar && editAvatar !== '👤' ? 'Avatar seçildi' : 'Avatar seç'}
                       </Text>
-                    </TouchableOpacity>
-                  ))}
+                      <Text style={styles.avatarTriggerHint}>Değiştirmek için dokun</Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </View>
+                </PressableScale>
+                <Text style={type.label}>Günlük Hedef</Text>
+                <View style={styles.goalRow}>
+                  {GOAL_OPTIONS.map(g => {
+                    const active = editGoal === g;
+                    return (
+                      <PressableScale
+                        key={g}
+                        onPress={() => { triggerSelect(); setEditGoal(g); }}
+                        style={[styles.goalChip, active && styles.goalChipActive]}
+                        accessibilityLabel={`${g} kart`}
+                      >
+                        <Text style={[styles.goalChipText, active && styles.goalChipTextActive]}>
+                          {g} kart
+                        </Text>
+                      </PressableScale>
+                    );
+                  })}
                 </View>
                 <View style={styles.editActions}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
-                    <Text style={styles.cancelBtnText}>Vazgeç</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.saveBtn, editName.trim().length < 2 && styles.saveBtnDisabled]}
+                  <InteractiveButton label="Vazgeç" variant="glass" onPress={() => setEditing(false)} style={{ flex: 1 }} />
+                  <InteractiveButton
+                    label="Kaydet"
                     onPress={saveEdit}
                     disabled={editName.trim().length < 2}
-                  >
-                    <Text style={styles.saveBtnText}>Kaydet</Text>
-                  </TouchableOpacity>
+                    style={{ flex: 1 }}
+                  />
                 </View>
-              </View>
+              </GlassPanel>
             ) : (
-              <View style={styles.heroCard}>
+              <GlassPanel emphasis="strong" padding={spacing.xl} style={styles.heroCard}>
                 <View style={styles.avatarCircle}>
                   <Text style={styles.avatarEmoji}>{getCharacter(profile)}</Text>
                 </View>
                 <Text style={styles.nameText} numberOfLines={1}>{profile.name}</Text>
-                <TouchableOpacity style={styles.editBtn} onPress={startEdit}>
-                  <Text style={styles.editBtnText}>Düzenle</Text>
-                </TouchableOpacity>
-              </View>
+                <InteractiveButton label="Düzenle" variant="glass" size="sm" onPress={startEdit} />
+              </GlassPanel>
             )}
 
-            <View style={styles.streakCard}>
+            <GlassPanel tint={colors.gold} padding={spacing.lg} style={styles.streakCard}>
               <Text style={styles.streakIcon}>🔥</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.streakNumber}>{stats.streak} günlük seri</Text>
                 <Text style={styles.streakSub}>En uzun seri: {stats.longestStreak} gün</Text>
               </View>
               {stats.streak > 0 && (
-                <View style={styles.streakBadge}>
-                  <Text style={styles.streakBadgeNum}>{stats.streak}</Text>
-                </View>
+                <Text style={[type.numeral, { color: colors.gold, fontSize: 26 }]}>{stats.streak}</Text>
               )}
-            </View>
+            </GlassPanel>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Bugün İlerleme</Text>
-              <View style={styles.todayCard}>
-                <View style={styles.todayMetrics}>
-                  <View style={styles.todayMetric}>
-                    <Text style={styles.todayMetricNum}>{stats.todayCards}</Text>
-                    <Text style={styles.todayMetricLabel}>Kart Açıldı</Text>
-                  </View>
-                  <View style={styles.todayMetricSep} />
-                  <View style={styles.todayMetric}>
-                    <Text style={styles.todayMetricNum}>{profile.dailyGoal}</Text>
-                    <Text style={styles.todayMetricLabel}>Günlük Hedef</Text>
-                  </View>
+            <SectionHeader title="Bugün İlerleme" spaced />
+            <GlassPanel padding={spacing.xl} style={styles.todayCard}>
+              <View style={styles.todayMetrics}>
+                <View style={styles.todayMetric}>
+                  <Text style={[type.numeral, { fontSize: 26 }]}>{stats.todayCards}</Text>
+                  <Text style={styles.todayMetricLabel}>Kart Açıldı</Text>
                 </View>
-                {goalDone ? (
-                  <View style={styles.goalDonePill}>
-                    <Text style={styles.goalDoneText}>✓ Hedef tamamlandı!</Text>
-                  </View>
-                ) : (
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${goalProgress * 100}%` as any }]} />
-                  </View>
-                )}
+                <View style={styles.todayMetricSep} />
+                <View style={styles.todayMetric}>
+                  <Text style={[type.numeral, { fontSize: 26 }]}>{profile.dailyGoal}</Text>
+                  <Text style={styles.todayMetricLabel}>Günlük Hedef</Text>
+                </View>
               </View>
-            </View>
+              {goalDone ? (
+                <View style={styles.goalDonePill}>
+                  <Text style={styles.goalDoneText}>✓ Hedef tamamlandı!</Text>
+                </View>
+              ) : (
+                <ProgressBar progress={goalProgress} height={6} />
+              )}
+            </GlassPanel>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Toplam</Text>
-              <View style={styles.statsGrid}>
-                <StatBox value={stats.totalCards} label="Kart" />
-                <StatBox value={stats.totalWords} label="Kelime" />
-                <StatBox value={stats.totalCorrect} label="Doğru" />
-                <StatBox value={accuracy()} label="İsabet" />
-              </View>
+            <SectionHeader title="Toplam" spaced />
+            <View style={styles.statsGrid}>
+              <StatBox value={stats.totalCards} label="Kart" />
+              <StatBox value={stats.totalWords} label="Kelime" />
+              <StatBox value={stats.totalCorrect} label="Doğru" />
+              <StatBox value={accuracy()} label="İsabet" />
             </View>
           </>
         )}
@@ -390,9 +400,9 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         {tab === 'settings' && (
           <>
             {Platform.OS !== 'web' && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Bildirimler</Text>
-                <View style={styles.notifCard}>
+              <>
+                <SectionHeader title="Bildirimler" />
+                <GlassPanel padding={spacing.lg} style={styles.notifCard}>
                   <View style={styles.notifToggleRow}>
                     <View style={styles.notifIconWrap}>
                       <Text style={styles.notifIcon}>📳</Text>
@@ -404,11 +414,11 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                     <Switch
                       value={hapticsEnabled}
                       onValueChange={handleHapticsToggle}
-                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
-                      thumbColor={hapticsEnabled ? C.primary : C.textFaint}
+                      trackColor={{ false: 'rgba(94,106,146,0.35)', true: alpha(colors.primary, 0.45) }}
+                      thumbColor={hapticsEnabled ? colors.primary : colors.textFaint}
                     />
                   </View>
-                  <View style={{ height: 1, backgroundColor: C.border }} />
+                  <View style={styles.notifDivider} />
                   <View style={styles.notifToggleRow}>
                     <View style={styles.notifIconWrap}>
                       <Text style={styles.notifIcon}>🔊</Text>
@@ -420,11 +430,11 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                     <Switch
                       value={soundEnabled}
                       onValueChange={handleSoundToggle}
-                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
-                      thumbColor={soundEnabled ? C.primary : C.textFaint}
+                      trackColor={{ false: 'rgba(94,106,146,0.35)', true: alpha(colors.primary, 0.45) }}
+                      thumbColor={soundEnabled ? colors.primary : colors.textFaint}
                     />
                   </View>
-                  <View style={{ height: 1, backgroundColor: C.border }} />
+                  <View style={styles.notifDivider} />
                   <View style={styles.notifToggleRow}>
                     <View style={styles.notifIconWrap}>
                       <Text style={styles.notifIcon}>🔔</Text>
@@ -440,8 +450,8 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                     <Switch
                       value={notifPrefs.enabled}
                       onValueChange={handleNotifToggle}
-                      trackColor={{ false: C.border, true: 'rgba(59,91,219,0.35)' }}
-                      thumbColor={notifPrefs.enabled ? C.primary : C.textFaint}
+                      trackColor={{ false: 'rgba(94,106,146,0.35)', true: alpha(colors.primary, 0.45) }}
+                      thumbColor={notifPrefs.enabled ? colors.primary : colors.textFaint}
                     />
                   </View>
                   {notifPrefs.enabled && (
@@ -449,95 +459,63 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                       {NOTIF_TIME_PRESETS.map(preset => {
                         const active = preset.hour === notifPrefs.hour && preset.minute === notifPrefs.minute;
                         return (
-                          <TouchableOpacity
+                          <PressableScale
                             key={preset.label}
-                            style={[styles.notifTimeChip, active && styles.notifTimeChipActive]}
                             onPress={() => handleNotifTimeChange(preset.hour, preset.minute)}
-                            activeOpacity={0.7}
+                            style={[styles.notifTimeChip, active && styles.notifTimeChipActive]}
+                            accessibilityLabel={preset.label}
                           >
                             <Text style={[styles.notifTimeText, active && styles.notifTimeTextActive]}>
                               {preset.label}
                             </Text>
-                          </TouchableOpacity>
+                          </PressableScale>
                         );
                       })}
                     </View>
                   )}
-                </View>
-              </View>
+                </GlassPanel>
+              </>
             )}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Uygulama</Text>
-              <TouchableOpacity style={styles.shareCard} onPress={handleReview} activeOpacity={0.75}>
-                <View style={[styles.shareIconWrap, { backgroundColor: 'rgba(217,119,6,0.10)', borderColor: 'rgba(217,119,6,0.25)' }]}>
-                  <Text style={styles.shareIcon}>⭐</Text>
-                </View>
-                <View style={styles.shareTextWrap}>
-                  <Text style={[styles.shareTitle, { color: C.warning }]}>Uygulamayı Değerlendir</Text>
-                  <Text style={styles.shareSub}>Görüşlerin bizim için değerli</Text>
-                </View>
-                <Text style={[styles.shareChevron, { color: C.warning }]}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.shareCard} onPress={handleShare} activeOpacity={0.75}>
-                <View style={styles.shareIconWrap}>
-                  <Text style={styles.shareIcon}>📤</Text>
-                </View>
-                <View style={styles.shareTextWrap}>
-                  <Text style={styles.shareTitle}>Uygulamayı Tavsiye Et</Text>
-                  <Text style={styles.shareSub}>Arkadaşlarına öner, birlikte öğrenin</Text>
-                </View>
-                <Text style={styles.shareChevron}>›</Text>
-              </TouchableOpacity>
-            </View>
+            <SectionHeader title="Uygulama" spaced />
+            <SettingsRow
+              icon="⭐" title="Uygulamayı Değerlendir" sub="Görüşlerin bizim için değerli"
+              tint={colors.gold} onPress={handleReview}
+            />
+            <SettingsRow
+              icon="📤" title="Uygulamayı Tavsiye Et" sub="Arkadaşlarına öner, birlikte öğrenin"
+              onPress={handleShare}
+            />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Hesap</Text>
-              <TouchableOpacity style={[styles.actionCard, styles.actionRowReset]} onPress={handleResetStats} activeOpacity={0.7}>
-                <View style={styles.actionRowInner}>
-                  <Text style={styles.actionResetText}>İstatistikleri Sıfırla</Text>
-                  <Text style={styles.actionSub}>Seri ve istatistikler silinir, profil kalır</Text>
-                </View>
-                <Text style={[styles.actionChevron, { color: C.resetColor }]}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionCard, styles.actionRowLogout]} onPress={handleLogout} activeOpacity={0.7}>
-                <View style={styles.actionRowInner}>
-                  <Text style={styles.actionLogoutText}>Çıkış Yap</Text>
-                  <Text style={styles.actionSub}>Tüm veriler kalıcı olarak silinir</Text>
-                </View>
-                <Text style={[styles.actionChevron, { color: C.logoutColor }]}>›</Text>
-              </TouchableOpacity>
-            </View>
+            <SectionHeader title="Hesap" spaced />
+            <SettingsRow
+              icon="↺" title="İstatistikleri Sıfırla" sub="Seri ve istatistikler silinir, profil kalır"
+              tint={colors.warning} onPress={handleResetStats}
+            />
+            <SettingsRow
+              icon="⏻" title="Çıkış Yap" sub="Tüm veriler kalıcı olarak silinir"
+              tint={colors.danger} onPress={handleLogout}
+            />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Yasal</Text>
-              <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('privacy')} activeOpacity={0.7}>
-                <View style={styles.legalIconWrap}>
-                  <Text style={styles.legalIconEmoji}>🔒</Text>
-                </View>
-                <Text style={styles.legalLabel}>Gizlilik Politikası</Text>
-                <Text style={styles.legalChevron}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.legalCard} onPress={() => openPolicy('terms')} activeOpacity={0.7}>
-                <View style={styles.legalIconWrap}>
-                  <Text style={styles.legalIconEmoji}>📋</Text>
-                </View>
-                <Text style={styles.legalLabel}>Kullanım Koşulları</Text>
-                <Text style={styles.legalChevron}>›</Text>
-              </TouchableOpacity>
-            </View>
+            <SectionHeader title="Yasal" spaced />
+            <SettingsRow
+              icon="🔒" title="Gizlilik Politikası" sub="Verilerin nasıl işlendiğini öğren"
+              onPress={() => openPolicy('privacy')}
+            />
+            <SettingsRow
+              icon="📋" title="Kullanım Koşulları" sub="Hizmet şartlarını incele"
+              onPress={() => openPolicy('terms')}
+            />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Hakkında</Text>
-              <View style={styles.footerCard}>
-                <Text style={styles.footerFlag}>🇩🇪</Text>
-                <Text style={styles.footerAppName}>Wortreise</Text>
-                <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
-                <View style={styles.footerDivider} />
-                <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
-                <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
-              </View>
-            </View>
+            <SectionHeader title="Hakkında" spaced />
+            <GlassPanel padding={spacing.xl} style={styles.footerCard}>
+              <Text style={styles.footerFlag}>🇩🇪</Text>
+              <Text style={styles.footerAppName}>Wortreise</Text>
+              <Text style={styles.footerVersion}>Versiyon 1.0.1</Text>
+              <View style={styles.footerDivider} />
+              <Text style={styles.footerCredit}>YAAY tarafından hayata geçirildi</Text>
+              <Text style={styles.footerAI}>Claude ile geliştirildi 🤖</Text>
+            </GlassPanel>
           </>
         )}
       </ScrollView>
@@ -550,35 +528,29 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         onRequestClose={() => setPolicyVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setPolicyVisible(false)}>
-          <View style={styles.policyOverlay}>
+          <View style={styles.sheetOverlay}>
             <TouchableWithoutFeedback>
-              <View style={styles.policySheet}>
-                <View style={styles.policyHandle} />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandle} />
                 <View style={styles.policyLangRow}>
-                  {(['tr', 'de', 'en'] as PolicyLang[]).map((lang, i) => (
-                    <TouchableOpacity
+                  {(['tr', 'de', 'en'] as PolicyLang[]).map(lang => (
+                    <PressableScale
                       key={lang}
-                      style={[styles.policyLangBtn, policyLang === lang && styles.policyLangBtnActive]}
                       onPress={() => setPolicyLang(lang)}
-                      activeOpacity={0.7}
+                      style={[styles.policyLangBtn, policyLang === lang && styles.policyLangBtnActive]}
+                      accessibilityLabel={lang}
                     >
                       <Text style={[styles.policyLangText, policyLang === lang && styles.policyLangTextActive]}>
                         {lang === 'tr' ? '🇹🇷 TR' : lang === 'de' ? '🇩🇪 DE' : '🇬🇧 EN'}
                       </Text>
-                    </TouchableOpacity>
+                    </PressableScale>
                   ))}
                 </View>
                 <Text style={styles.policyTitle}>{POLICY_CONTENT[policyType][policyLang].title}</Text>
                 <ScrollView showsVerticalScrollIndicator={false} style={styles.policyScroll}>
                   <Text style={styles.policyBody}>{POLICY_CONTENT[policyType][policyLang].body}</Text>
                 </ScrollView>
-                <TouchableOpacity
-                  style={styles.policyCloseBtn}
-                  onPress={() => setPolicyVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.policyCloseBtnText}>Kapat</Text>
-                </TouchableOpacity>
+                <InteractiveButton label="Kapat" onPress={() => setPolicyVisible(false)} fullWidth />
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -593,25 +565,28 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         onRequestClose={() => setAvatarSheetVisible(false)}
       >
         <TouchableOpacity
-          style={styles.avatarSheetOverlay}
+          style={styles.sheetOverlay}
           activeOpacity={1}
           onPress={() => setAvatarSheetVisible(false)}
         >
-          <View style={styles.avatarSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.avatarSheetHandle} />
+          <View style={[styles.sheet, { maxHeight: '72%' }]} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
             <Text style={styles.avatarSheetTitle}>Avatarını Seç</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.emojiGrid}>
-                {AVATARS.map(em => (
-                  <TouchableOpacity
-                    key={em}
-                    style={[styles.emojiBtn, editAvatar === em && styles.emojiBtnActive]}
-                    onPress={() => { setEditAvatar(em); setAvatarSheetVisible(false); }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.emojiText}>{em}</Text>
-                  </TouchableOpacity>
-                ))}
+                {AVATARS.map(em => {
+                  const active = editAvatar === em;
+                  return (
+                    <PressableScale
+                      key={em}
+                      onPress={() => { setEditAvatar(em); setAvatarSheetVisible(false); }}
+                      style={[styles.emojiBtn, active && styles.emojiBtnActive]}
+                      accessibilityLabel={`Avatar ${em}`}
+                    >
+                      <Text style={styles.emojiText}>{em}</Text>
+                    </PressableScale>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -623,358 +598,171 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  tabBar: {
-    flexDirection: 'row', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    backgroundColor: C.bg,
+  safe: { flex: 1, backgroundColor: colors.bg },
+  headerArea: {
+    paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.lg,
   },
-  tabBtn: {
-    flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
-    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+  segment: {
+    flexDirection: 'row', gap: spacing.xs,
+    backgroundColor: colors.glass,
+    borderWidth: 1, borderColor: colors.glassBorder,
+    borderRadius: radius.md, padding: 4,
   },
-  tabBtnActive: {
-    backgroundColor: C.primary, borderColor: C.primary,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
+  segmentBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: radius.sm, alignItems: 'center',
   },
-  tabBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  tabBtnTextActive: { color: '#FFFFFF', fontWeight: '800' },
-  container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 16 },
+  segmentBtnActive: {
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1, borderColor: colors.primaryBorder,
+  },
+  segmentText: { fontSize: 13.5, fontWeight: '700', color: colors.textFaint, letterSpacing: 0.2 },
+  segmentTextActive: { color: colors.text },
 
-  heroCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: C.primaryBg, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+  container: {
+    paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: 56, gap: spacing.md,
   },
+
+  heroCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   avatarCircle: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: C.primaryBg, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: C.primary,
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: colors.primaryBorder,
     flexShrink: 0,
   },
-  avatarEmoji: { fontSize: 30 },
-  nameText: { flex: 1, fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
-  avatarTrigger: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface2, borderRadius: 14,
+  avatarEmoji: { fontSize: 32 },
+  nameText: { flex: 1, ...type.title, fontSize: 21 },
+
+  editCard: { gap: spacing.md },
+  editTitle: { ...type.heading, marginBottom: 2 },
+  editInput: {
+    backgroundColor: 'rgba(8,12,24,0.55)', borderRadius: radius.sm,
     paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: C.borderBright,
+    fontSize: 16, color: colors.text, fontWeight: '500', letterSpacing: 0.2,
+    borderWidth: 1, borderColor: colors.glassBorderStrong,
+  },
+  avatarTrigger: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: 'rgba(8,12,24,0.4)', borderRadius: radius.md,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: colors.glassBorder,
   },
   avatarTriggerCircle: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: C.surface, borderWidth: 2, borderColor: C.borderBright,
+    backgroundColor: colors.glass, borderWidth: 1.5, borderColor: colors.glassBorderStrong,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarTriggerCircleSelected: {
-    borderColor: C.primary, backgroundColor: C.primaryBg,
+    borderColor: colors.primary, backgroundColor: colors.primarySoft,
   },
   avatarTriggerEmoji: { fontSize: 26 },
-  avatarTriggerInfo: { flex: 1, gap: 2 },
-  avatarTriggerTitle: { fontSize: 14, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
-  avatarTriggerHint: { fontSize: 11, color: C.textFaint, fontWeight: '500' },
-  avatarTriggerArrow: { fontSize: 20, color: C.textFaint, fontWeight: '300', lineHeight: 24 },
-  avatarSheetOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
-  },
-  avatarSheet: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
-    maxHeight: '72%',
-    borderTopWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
-  },
-  avatarSheetHandle: {
-    width: 40, height: 4, borderRadius: 2,
-    backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
-  },
-  avatarSheetTitle: {
-    fontSize: 17, fontWeight: '800', color: C.text,
-    textAlign: 'center', letterSpacing: 0.2, marginBottom: 20,
-  },
-  emojiGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8,
-  },
-  emojiBtn: {
-    width: 54, height: 54, borderRadius: 16,
-    backgroundColor: C.surface2, borderWidth: 1.5, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  emojiBtnActive: {
-    borderColor: C.primary, backgroundColor: C.primaryBg,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, shadowRadius: 6, elevation: 3,
-  },
-  emojiText: { fontSize: 28 },
-  editBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 10, borderWidth: 1.5, borderColor: C.borderBright,
-    backgroundColor: C.surface2, flexShrink: 0,
-  },
-  editBtnText: { fontSize: 12, fontWeight: '700', color: C.textDim, letterSpacing: 0.3 },
+  avatarTriggerTitle: { fontSize: 14, fontWeight: '700', color: colors.text, letterSpacing: 0.1 },
+  avatarTriggerHint: { fontSize: 11, color: colors.textFaint, fontWeight: '500' },
 
-  editCard: {
-    backgroundColor: C.surface, borderRadius: 20, padding: 20, gap: 12,
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
-  },
-  editTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4, letterSpacing: 0.2 },
-  editLabel: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
-  editInput: {
-    backgroundColor: C.surface2, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 16, color: C.text, fontWeight: '500', letterSpacing: 0.2,
-    borderWidth: 1.5, borderColor: C.borderBright,
-  },
-  goalRow: { flexDirection: 'row', gap: 8 },
+  goalRow: { flexDirection: 'row', gap: spacing.sm },
   goalChip: {
-    flex: 1, borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
-    backgroundColor: C.surface,
+    flex: 1, borderWidth: 1, borderColor: colors.glassBorder,
+    borderRadius: radius.sm, paddingVertical: 11, alignItems: 'center',
+    backgroundColor: colors.glass,
   },
-  goalChipActive: {
-    borderColor: C.primary, backgroundColor: C.primaryBg,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 2,
-  },
-  goalChipText: { fontSize: 13, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  goalChipTextActive: { color: C.primary },
-  editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: {
-    flex: 1, borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
-    backgroundColor: C.surface,
-  },
-  cancelBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  saveBtn: {
-    flex: 1, backgroundColor: C.primary,
-    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
-  },
-  saveBtnDisabled: { backgroundColor: C.border, shadowOpacity: 0 },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  goalChipActive: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  goalChipText: { fontSize: 13, fontWeight: '700', color: colors.textDim, letterSpacing: 0.2 },
+  goalChipTextActive: { color: colors.primary },
+  editActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xs },
 
-  streakCard: {
-    backgroundColor: 'rgba(217,119,6,0.07)',
-    borderRadius: 18, padding: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.warning,
-    shadowColor: C.warning,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
-  },
-  streakIcon: { fontSize: 34 },
-  streakNumber: { fontSize: 19, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
-  streakSub: { fontSize: 13, color: C.textDim, marginTop: 2, letterSpacing: 0.1 },
-  streakBadge: {
-    backgroundColor: 'rgba(217,119,6,0.12)',
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  streakBadgeNum: { fontSize: 20, fontWeight: '800', color: C.warning },
+  streakCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  streakIcon: { fontSize: 32 },
+  streakNumber: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: 0.1 },
+  streakSub: { fontSize: 13, color: colors.textDim, marginTop: 2, letterSpacing: 0.1 },
 
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3 },
-
-  todayCard: {
-    backgroundColor: C.primaryBg,
-    borderRadius: 18, padding: 14, gap: 10,
-    borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
-  },
+  todayCard: { gap: spacing.lg },
   todayMetrics: { flexDirection: 'row', alignItems: 'center' },
   todayMetric: { flex: 1, alignItems: 'center', gap: 4 },
-  todayMetricNum: { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  todayMetricLabel: { fontSize: 12, fontWeight: '600', color: C.textDim, letterSpacing: 0.3 },
-  todayMetricSep: { width: 1, height: 38, backgroundColor: C.border, marginHorizontal: 12 },
+  todayMetricLabel: { fontSize: 12, fontWeight: '600', color: colors.textDim, letterSpacing: 0.3 },
+  todayMetricSep: { width: 1, height: 38, backgroundColor: colors.glassBorder, marginHorizontal: 12 },
   goalDonePill: {
-    backgroundColor: C.successBg, borderRadius: 10,
+    backgroundColor: colors.successSoft, borderRadius: radius.sm,
     paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(26,158,110,0.3)',
+    borderWidth: 1, borderColor: colors.successBorder,
   },
-  goalDoneText: { fontSize: 13, fontWeight: '700', color: C.success, letterSpacing: 0.2 },
-  progressTrack: { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: C.primary, borderRadius: 3 },
+  goalDoneText: { fontSize: 13, fontWeight: '700', color: colors.success, letterSpacing: 0.2 },
 
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statBox: {
-    flex: 1, minWidth: '44%',
-    backgroundColor: C.successBg,
-    borderRadius: 16, padding: 14, alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: 'rgba(26,158,110,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.success,
-    shadowColor: C.success,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1, shadowRadius: 4, elevation: 1,
-  },
-  statValue: { fontSize: 24, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  statLabel: { fontSize: 12, color: C.textDim, fontWeight: '700', letterSpacing: 0.5 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  statBox: { flexGrow: 1, minWidth: '44%', alignItems: 'center', gap: 4 },
+  statLabel: { fontSize: 12, color: colors.textDim, fontWeight: '700', letterSpacing: 0.5 },
 
-  shareCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 18, borderWidth: 1,
-    backgroundColor: 'rgba(59,91,219,0.07)',
-    borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 8, elevation: 2,
+  rowCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  rowIcon: {
+    width: 44, height: 44, borderRadius: radius.sm,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  shareIconWrap: {
-    width: 44, height: 44, borderRadius: 14,
-    backgroundColor: C.primaryBg,
-    borderWidth: 1.5, borderColor: 'rgba(59,91,219,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  shareIcon: { fontSize: 20 },
-  shareTextWrap: { flex: 1, gap: 3 },
-  shareTitle: { fontSize: 15, fontWeight: '700', color: C.primary, letterSpacing: 0.1 },
-  shareSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', letterSpacing: 0.1 },
-  shareChevron: { fontSize: 24, fontWeight: '300', color: C.primary, lineHeight: 28, opacity: 0.6 },
+  rowIconText: { fontSize: 19, color: colors.text },
+  rowTextWrap: { flex: 1, gap: 3 },
+  rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text, letterSpacing: 0.1 },
+  rowSub: { fontSize: 12, color: colors.textFaint, fontWeight: '500', letterSpacing: 0.1 },
+  chevron: { fontSize: 24, fontWeight: '400', color: colors.textFaint, opacity: 0.8 },
 
-  actionCard: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderRadius: 18, borderWidth: 1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
-  },
-  actionRowReset: {
-    backgroundColor: 'rgba(180,94,42,0.07)',
-    borderColor: 'rgba(180,94,42,0.28)', borderLeftWidth: 4, borderLeftColor: C.resetColor,
-    shadowColor: C.resetColor,
-  },
-  actionRowLogout: {
-    backgroundColor: 'rgba(163,48,80,0.07)',
-    borderColor: 'rgba(163,48,80,0.28)', borderLeftWidth: 4, borderLeftColor: C.logoutColor,
-    shadowColor: C.logoutColor,
-  },
-  actionRowInner: { flex: 1 },
-  actionResetText: { fontSize: 15, fontWeight: '700', color: C.resetColor, marginBottom: 4, letterSpacing: 0.1 },
-  actionLogoutText: { fontSize: 15, fontWeight: '700', color: C.logoutColor, marginBottom: 4, letterSpacing: 0.1 },
-  actionSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', lineHeight: 17, letterSpacing: 0.1 },
-  actionChevron: { fontSize: 24, fontWeight: '300', marginLeft: 10, lineHeight: 28, opacity: 0.5 },
-
-  legalCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 18, paddingVertical: 14,
-    borderRadius: 16, borderWidth: 1,
-    backgroundColor: 'rgba(78,92,128,0.07)',
-    borderColor: 'rgba(78,92,128,0.25)',
-    borderLeftWidth: 4, borderLeftColor: C.textDim,
-    shadowColor: C.textDim, shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 4, elevation: 1,
-  },
-  legalIconWrap: {
-    width: 38, height: 38, borderRadius: 11,
-    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  legalIconEmoji: { fontSize: 18 },
-  legalLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.textDim, letterSpacing: 0.1 },
-  legalChevron: { fontSize: 22, fontWeight: '300', color: C.textFaint, lineHeight: 26, opacity: 0.7 },
-
-  footerCard: {
-    alignItems: 'center', gap: 4,
-    paddingVertical: 18, paddingHorizontal: 20,
-    borderRadius: 20, borderWidth: 1,
-    backgroundColor: C.primaryBg,
-    borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
-  },
+  footerCard: { alignItems: 'center', gap: 4 },
   footerFlag: { fontSize: 28, marginBottom: 4 },
-  footerAppName: { fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: 0.5 },
-  footerVersion: { fontSize: 12, fontWeight: '600', color: C.textFaint, letterSpacing: 0.5, marginTop: 2 },
-  footerDivider: { width: 32, height: 1, backgroundColor: C.border, marginVertical: 10 },
-  footerCredit: { fontSize: 12, color: C.textDim, fontWeight: '500', letterSpacing: 0.2 },
-  footerAI: { fontSize: 11, color: C.textFaint, fontWeight: '400', letterSpacing: 0.2, marginTop: 2 },
+  footerAppName: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: 0.5 },
+  footerVersion: { fontSize: 12, fontWeight: '600', color: colors.textFaint, letterSpacing: 0.5, marginTop: 2 },
+  footerDivider: { width: 32, height: 1, backgroundColor: colors.glassBorder, marginVertical: 10 },
+  footerCredit: { fontSize: 12, color: colors.textDim, fontWeight: '500', letterSpacing: 0.2 },
+  footerAI: { fontSize: 11, color: colors.textFaint, fontWeight: '400', letterSpacing: 0.2, marginTop: 2 },
 
-  notifCard: {
-    backgroundColor: C.primaryBg,
-    borderRadius: 18, padding: 16, gap: 14,
-    borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
-  },
-  notifToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  notifCard: { gap: spacing.md },
+  notifToggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   notifIconWrap: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.borderBright,
+    width: 40, height: 40, borderRadius: radius.sm,
+    backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   notifIcon: { fontSize: 18 },
   notifTextWrap: { flex: 1, gap: 2 },
-  notifTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
-  notifSub: { fontSize: 12, color: C.textFaint, fontWeight: '500', letterSpacing: 0.1 },
-  notifTimeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  notifTitle: { fontSize: 15, fontWeight: '700', color: colors.text, letterSpacing: 0.1 },
+  notifSub: { fontSize: 12, color: colors.textFaint, fontWeight: '500', letterSpacing: 0.1 },
+  notifDivider: { height: 1, backgroundColor: colors.glassBorder },
+  notifTimeRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   notifTimeChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1.5, borderColor: C.borderBright, backgroundColor: C.surface,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
   },
-  notifTimeChipActive: {
-    borderColor: C.primary, backgroundColor: C.surface,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, shadowRadius: 6, elevation: 2,
-  },
-  notifTimeText: { fontSize: 13, fontWeight: '700', color: C.textDim, letterSpacing: 0.3 },
-  notifTimeTextActive: { color: C.primary },
+  notifTimeChipActive: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  notifTimeText: { fontSize: 13, fontWeight: '700', color: colors.textDim, letterSpacing: 0.3 },
+  notifTimeTextActive: { color: colors.primary },
 
-  policyOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
-  },
-  policySheet: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
+  sheetOverlay: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: colors.bgSheet,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingTop: 12, paddingHorizontal: spacing.xl, paddingBottom: 40,
     maxHeight: '88%',
-    borderTopWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
+    borderWidth: 1, borderColor: colors.glassBorderStrong, borderBottomWidth: 0,
   },
-  policyHandle: {
+  sheetHandle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: C.border, alignSelf: 'center', marginBottom: 16,
+    backgroundColor: colors.glassBorderStrong, alignSelf: 'center', marginBottom: 16,
   },
-  policyLangRow: { flexDirection: 'row', gap: 8, marginBottom: 16, justifyContent: 'center' },
-  policyLangBtn: {
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  avatarSheetTitle: {
+    ...type.heading, fontSize: 17, textAlign: 'center', marginBottom: spacing.xl,
   },
-  policyLangBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
-  policyLangText: { fontSize: 13, fontWeight: '600', color: C.textDim },
-  policyLangTextActive: { color: C.primary },
-  policyTitle: {
-    fontSize: 18, fontWeight: '800', color: C.text,
-    textAlign: 'center', letterSpacing: 0.2, marginBottom: 12,
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
+  emojiBtn: {
+    width: 54, height: 54, borderRadius: radius.md,
+    backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
+    alignItems: 'center', justifyContent: 'center',
   },
-  policyScroll: { flexGrow: 0, marginBottom: 8 },
-  policyBody: { fontSize: 12, color: C.textDim, lineHeight: 18, fontWeight: '400', paddingBottom: 8 },
-  policyCloseBtn: {
-    marginTop: 8, backgroundColor: C.primary,
-    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-  },
-  policyCloseBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  emojiBtnActive: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  emojiText: { fontSize: 28 },
 
+  policyLangRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg, justifyContent: 'center' },
+  policyLangBtn: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
+  },
+  policyLangBtnActive: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  policyLangText: { fontSize: 13, fontWeight: '600', color: colors.textDim },
+  policyLangTextActive: { color: colors.primary },
+  policyTitle: { ...type.heading, textAlign: 'center', marginBottom: spacing.md },
+  policyScroll: { flexGrow: 0, marginBottom: spacing.md },
+  policyBody: { fontSize: 12.5, color: colors.textDim, lineHeight: 19, fontWeight: '400', paddingBottom: 8 },
 });

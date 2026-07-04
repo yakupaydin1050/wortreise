@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { alpha, colors } from '../theme';
+import { triggerTap } from '../utils/haptics';
 
 interface Props {
   word: string;
@@ -40,7 +42,10 @@ export default function WordChip({ word, onPress, placed, selected }: Props) {
           bounciness: 5,
         }).start();
       }}
-      onPress={onPress}
+      onPress={() => {
+        triggerTap();
+        onPress?.();
+      }}
     >
       <Animated.View
         style={[
@@ -57,35 +62,35 @@ export default function WordChip({ word, onPress, placed, selected }: Props) {
 
 const styles = StyleSheet.create({
   chip: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#C8D0E8',
+    backgroundColor: colors.glassStrong,
+    borderWidth: 1,
+    borderColor: colors.glassBorderStrong,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 9,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 2,
   },
   chipSelected: {
-    backgroundColor: 'rgba(59,91,219,0.09)',
-    borderColor: '#3B5BDB',
-    shadowColor: '#3B5BDB',
+    backgroundColor: alpha(colors.primary, 0.16),
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 4,
   },
   text: {
-    color: '#1A2340',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
   textSelected: {
-    color: '#3B5BDB',
+    color: colors.primary,
     fontWeight: '700',
   },
 });

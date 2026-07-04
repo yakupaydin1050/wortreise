@@ -15,24 +15,26 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
-import GridBackground from '../components/GridBackground';
+import { colors } from '../theme';
+import { ScreenBackground } from '../components/ui';
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  bg: '#FAF8F4',
-  surface: '#FFFFFF',
-  surface2: '#EEF1FF',
-  border: '#DDE3F5',
-  borderBright: '#B8C4E8',
-  primary: '#3B5BDB',
-  primaryBg: 'rgba(59,91,219,0.10)',
-  text: '#1A2340',
-  textDim: '#4E5C80',
-  textFaint: '#8896B8',
-  success: '#1A9E6E',
-  successBg: 'rgba(26,158,110,0.12)',
-  warning: '#D97706',
-  danger: '#DC2626',
-  revealed: '#C8D0E8',
+  bg: colors.bg,
+  surface: colors.glass,
+  surface2: colors.glassStrong,
+  border: colors.glassBorder,
+  borderBright: colors.glassBorderStrong,
+  primary: colors.primary,
+  primaryBg: colors.primarySoft,
+  text: colors.text,
+  textDim: colors.textDim,
+  textFaint: colors.textFaint,
+  success: colors.success,
+  successBg: colors.successSoft,
+  warning: colors.warning,
+  danger: colors.danger,
+  revealed: '#3A4568',
 };
 
 interface SlotState {
@@ -326,7 +328,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -641,13 +643,12 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: 'rgba(59,91,219,0.07)' },
+  safe: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: 'rgba(59,91,219,0.07)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(59,91,219,0.2)',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   homeBtn: {
     backgroundColor: C.surface2, borderRadius: 12,
@@ -673,16 +674,15 @@ const styles = StyleSheet.create({
 
   segmentBar: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10,
-    gap: 4, backgroundColor: 'rgba(59,91,219,0.07)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(59,91,219,0.2)',
+    gap: 4,
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   segment: { flex: 1, height: 5, borderRadius: 3 },
 
   actionBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: 'rgba(59,91,219,0.07)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(59,91,219,0.2)',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   actionProgressText: { fontSize: 13, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
   actionBtns: { flexDirection: 'row', gap: 8 },
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingVertical: 12, paddingHorizontal: 12, gap: 8 },
 
   pool: {
-    backgroundColor: C.surface, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20,
+    backgroundColor: 'rgba(13,20,48,0.85)', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20,
     borderTopWidth: 1, borderTopColor: C.border, gap: 8,
   },
   poolLabel: { fontSize: 10, fontWeight: '700', color: C.primary, letterSpacing: 2 },
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
   progressIndicatorFull: { color: C.primary },
 
   remainingPool: {
-    backgroundColor: C.surface, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12,
+    backgroundColor: 'rgba(13,20,48,0.85)', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12,
     borderTopWidth: 1, borderTopColor: C.border, gap: 8,
   },
   remainingLabel: { fontSize: 9, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   pruefenTextActive: { color: '#FFFFFF' },
 
   timedOutBar: {
-    backgroundColor: C.surface, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20,
+    backgroundColor: 'rgba(13,20,48,0.85)', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20,
     borderTopWidth: 1, borderTopColor: C.border, alignItems: 'center', gap: 6,
   },
   timedOutLabel: { fontSize: 15, color: C.textDim, fontWeight: '700', letterSpacing: 0.3 },
@@ -790,10 +790,10 @@ const styles = StyleSheet.create({
   reportBtnTextReported: { color: C.danger, fontWeight: '700' },
 
   reportOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)',
+    flex: 1, backgroundColor: colors.backdrop,
   },
   reportSheet: {
-    backgroundColor: C.surface,
+    backgroundColor: colors.bgSheet,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40,
     borderTopWidth: 1, borderColor: C.border,
@@ -884,11 +884,11 @@ const styles = StyleSheet.create({
 
   // Achievement modal
   achOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    flex: 1, backgroundColor: colors.backdrop,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28,
   },
   achSheet: {
-    backgroundColor: C.surface, borderRadius: 24, padding: 24, gap: 14,
+    backgroundColor: colors.bgSheet, borderRadius: 24, padding: 24, gap: 14,
     width: '100%',
     borderWidth: 1, borderColor: 'rgba(59,91,219,0.28)',
     shadowColor: C.primary, shadowOffset: { width: 0, height: 8 },

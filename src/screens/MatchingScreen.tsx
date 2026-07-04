@@ -12,7 +12,8 @@ import {
 import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { AchievementDef, checkNewAchievements } from '../data/achievements';
-import GridBackground from '../components/GridBackground';
+import { alpha, colors, gameAccent } from '../theme';
+import { ScreenBackground } from '../components/ui';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
@@ -22,21 +23,23 @@ import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound'
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAIR_COUNT = 10;
 
+// Bright pair accents tuned for the dark canvas
 const PAIR_COLORS = [
-  '#3B5BDB', '#0891B2', '#7C3AED', '#059669', '#D97706',
-  '#EC4899', '#F97316', '#0F766E', '#65A30D', '#9333EA',
+  '#7C8CF8', '#22D3EE', '#A78BFA', '#34D399', '#FBBF24',
+  '#F472B6', '#FB923C', '#2DD4BF', '#A3E635', '#C084FC',
 ];
-const pairBg = (hex: string) => hex + '18';
+const pairBg = (hex: string) => hex + '26';
 
 const CONFETTI_COLORS = PAIR_COLORS;
 const CONFETTI_COUNT = 40;
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF',
-  border: '#DDE3F5', borderBright: '#B8C4E8',
-  primary: '#3B5BDB', primaryBg: 'rgba(59,91,219,0.10)',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  success: '#1A9E6E', danger: '#DC2626', dangerBg: 'rgba(220,38,38,0.08)',
+  bg: colors.bg, surface: colors.glass,
+  border: colors.glassBorder, borderBright: colors.glassBorderStrong,
+  primary: colors.primary, primaryBg: colors.primarySoft,
+  text: colors.text, textDim: colors.textDim, textFaint: colors.textFaint,
+  success: colors.success, danger: colors.danger, dangerBg: colors.dangerSoft,
 };
 
 interface MatchItem extends WordPair {
@@ -298,7 +301,7 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
   if (phase === 'choose') {
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.matching} />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -355,7 +358,7 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
   // ── GAME ───────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground tint={gameAccent.matching} />
 
       {showConfetti && (
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -581,26 +584,25 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: 'rgba(124,58,237,0.07)' },
+  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: 'rgba(124,58,237,0.07)',
-    borderBottomWidth: 1, borderBottomColor: '#E0D4F7',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   backBtn: {
-    backgroundColor: '#EEF1FF', borderRadius: 12,
+    backgroundColor: colors.glassStrong, borderRadius: 12,
     width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: C.borderBright,
+    borderWidth: 1, borderColor: C.borderBright,
   },
-  backBtnText: { fontSize: 20, color: C.primary },
+  backBtnText: { fontSize: 20, color: colors.text },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
   headerSub: { fontSize: 12, color: C.textDim, marginTop: 2, letterSpacing: 0.2 },
   scorePill: {
     borderWidth: 1.5, borderColor: C.borderBright, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 6, minWidth: 54, alignItems: 'center',
-    backgroundColor: '#EEF1FF',
+    backgroundColor: colors.glassStrong,
   },
   scoreText: { fontSize: 14, fontWeight: '800', color: C.primary, letterSpacing: 0.3 },
   progressTrack: { height: 4, backgroundColor: C.border },
@@ -614,11 +616,11 @@ const styles = StyleSheet.create({
   col: { flex: 1, gap: 8 },
   colDivider: { width: 1, backgroundColor: C.border, marginVertical: 4 },
   item: {
-    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E0D4F7',
+    backgroundColor: colors.glassStrong, borderWidth: 1, borderColor: colors.glassBorderStrong,
     borderRadius: 12, paddingHorizontal: 10, paddingVertical: 13,
     alignItems: 'center', justifyContent: 'center', minHeight: 48,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 3, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18, shadowRadius: 5, elevation: 2,
   },
   itemSelected: { backgroundColor: C.primaryBg, borderColor: C.primary, shadowColor: C.primary, shadowOpacity: 0.15, elevation: 3 },
   itemWrong: { backgroundColor: C.dangerBg, borderColor: C.danger },
@@ -626,15 +628,15 @@ const styles = StyleSheet.create({
   itemTextSelected: { color: C.primary, fontWeight: '700' },
   itemTextWrong: { color: C.danger, fontWeight: '700' },
   bottomBar: {
-    backgroundColor: C.surface, paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: 'rgba(13,20,48,0.85)', paddingHorizontal: 16, paddingVertical: 12,
     borderTopWidth: 1, borderTopColor: C.border,
   },
   newRoundBtn: {
     backgroundColor: C.success, borderRadius: 14, paddingVertical: 15, alignItems: 'center',
-    shadowColor: C.success, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 10, elevation: 5,
+    shadowColor: C.success, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
   },
   newRoundBtnRetry: { backgroundColor: C.danger, shadowColor: C.danger },
-  newRoundBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  newRoundBtnText: { color: '#081018', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   skipBtn: {
     borderWidth: 1.5, borderColor: C.borderBright, borderRadius: 14,
     paddingVertical: 12, alignItems: 'center', backgroundColor: C.surface,
@@ -676,9 +678,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12, alignItems: 'center', backgroundColor: C.surface, marginBottom: 8,
   },
   pairsBtnText: { fontSize: 14, fontWeight: '700', color: C.textDim, letterSpacing: 0.2 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end' },
+  modalBackdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: colors.bgSheet, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
     maxHeight: '80%',
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 12,
@@ -688,7 +690,7 @@ const styles = StyleSheet.create({
   modalClose: { fontSize: 18, color: C.textFaint, fontWeight: '600' },
   pairRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6, borderRadius: 10, backgroundColor: C.bg,
+    paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6, borderRadius: 10, backgroundColor: colors.glass,
   },
   pairDE: { flex: 1, fontSize: 14, fontWeight: '700' },
   pairArrow: { fontSize: 12, color: C.textFaint },
@@ -699,15 +701,15 @@ const styles = StyleSheet.create({
   // Report icon (in pairs modal)
   reportIconBtn: {
     width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(220,38,38,0.07)', borderWidth: 1, borderColor: 'rgba(220,38,38,0.2)',
+    backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.dangerBorder,
   },
   reportIconText: { fontSize: 14, color: C.danger },
   reportIconTextReported: { color: C.textFaint },
 
   // Report modal
-  reportOverlay: { flex: 1, backgroundColor: 'rgba(10,20,60,0.45)' },
+  reportOverlay: { flex: 1, backgroundColor: colors.backdrop },
   reportSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: colors.bgSheet, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 32,
     borderTopWidth: 1, borderColor: C.border,
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8,
@@ -716,12 +718,12 @@ const styles = StyleSheet.create({
   reportTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: 0.2, marginBottom: 12 },
   reportWordBox: {
     backgroundColor: C.primaryBg, borderRadius: 12, padding: 12, marginBottom: 12,
-    borderWidth: 1, borderColor: 'rgba(59,91,219,0.2)', gap: 3,
+    borderWidth: 1, borderColor: colors.primaryBorder, gap: 3,
   },
   reportWordDe: { fontSize: 15, fontWeight: '700', color: C.text },
   reportWordTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
   reportInput: {
-    backgroundColor: '#FAF8F4', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+    backgroundColor: 'rgba(8,12,24,0.55)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: C.text, fontWeight: '500', borderWidth: 1.5, borderColor: C.borderBright,
     minHeight: 80, textAlignVertical: 'top', marginBottom: 16,
   },
@@ -737,37 +739,37 @@ const styles = StyleSheet.create({
   reportSuccessBox: { alignItems: 'center', paddingVertical: 20, gap: 12 },
   reportSuccessIcon: {
     fontSize: 38, color: C.success,
-    backgroundColor: 'rgba(26,158,110,0.12)', borderRadius: 28,
+    backgroundColor: colors.successSoft, borderRadius: 28,
     width: 56, height: 56, textAlign: 'center', lineHeight: 56, overflow: 'hidden',
   },
   reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
 
   // Achievement modal
   achOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.55)',
+    flex: 1, backgroundColor: colors.backdrop,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28,
   },
   achSheet: {
-    backgroundColor: C.surface, borderRadius: 24, padding: 24, gap: 14,
+    backgroundColor: colors.bgSheet, borderRadius: 24, padding: 24, gap: 14,
     width: '100%',
-    borderWidth: 1, borderColor: 'rgba(124,58,237,0.28)',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18, shadowRadius: 24, elevation: 10,
+    borderWidth: 1, borderColor: alpha(gameAccent.matching, 0.3),
+    shadowColor: gameAccent.matching, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25, shadowRadius: 24, elevation: 10,
   },
   achSheetTitle: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', letterSpacing: 0.1 },
   achSheetSub: { fontSize: 14, color: C.textDim, textAlign: 'center', fontWeight: '500', marginTop: -6 },
   achRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)',
+    backgroundColor: alpha(gameAccent.matching, 0.1), borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: alpha(gameAccent.matching, 0.25),
   },
   achRowEmoji: { fontSize: 34 },
   achRowTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: 0.1 },
   achRowDesc: { fontSize: 12, color: C.textDim, fontWeight: '400', marginTop: 2 },
   achCloseBtn: {
-    backgroundColor: '#7C3AED', borderRadius: 14, paddingVertical: 16, alignItems: 'center',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28, shadowRadius: 12, elevation: 5, marginTop: 4,
+    backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+    shadowColor: '#8B5CF6', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 12, elevation: 5, marginTop: 4,
   },
   achCloseBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
 });

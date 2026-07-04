@@ -28,3 +28,15 @@ export function triggerHaptic(type: Haptics.NotificationFeedbackType): void {
   if (!_enabled || Platform.OS === 'web') return;
   Haptics.notificationAsync(type).catch(() => {});
 }
+
+/** Light impact for button/card presses — standard touch feedback. */
+export function triggerTap(): void {
+  if (!_enabled || Platform.OS === 'web') return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
+
+/** Selection tick for toggles, chips and pickers. */
+export function triggerSelect(): void {
+  if (!_enabled || Platform.OS === 'web') return;
+  Haptics.selectionAsync().catch(() => {});
+}

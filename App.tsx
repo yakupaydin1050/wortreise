@@ -1,8 +1,10 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +12,7 @@ import { loadStats } from './src/utils/storage';
 import { setupNotificationHandler, setupAndroidChannel, refreshStreakNotification } from './src/utils/notifications';
 import { loadAndApplyHapticsPreference } from './src/utils/haptics';
 import { loadAndApplySoundPreference, preloadSounds } from './src/utils/sound';
+import { alpha, colors } from './src/theme';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
@@ -30,6 +33,19 @@ import DialogScreen from './src/screens/DialogScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const navTheme = {
+  ...DefaultTheme,
+  dark: true,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.bg,
+    card: colors.bg,
+    text: colors.text,
+    border: colors.glassBorder,
+  },
+};
 
 function BookIcon({ color }: { color: string }) {
   return (
@@ -100,11 +116,44 @@ function PersonIcon({ color }: { color: string }) {
   );
 }
 
-// Dark RPG tab bar background with a subtle gold top rule
+// Active tab gets a glowing pill behind its icon so the selected section
+// stands out beyond a plain color change.
+function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  return (
+    <View
+      style={{
+        width: 58,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? alpha(colors.primary, 0.18) : 'transparent',
+        borderWidth: 1,
+        borderColor: focused ? alpha(colors.primary, 0.45) : 'transparent',
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: focused ? 0.5 : 0,
+        shadowRadius: 10,
+        elevation: focused ? 6 : 0,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+// Glass tab bar: gradient fade into the canvas + hairline light edge
 function TabBarBackground() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#111C32', justifyContent: 'flex-end' }}>
-      <View style={{ height: 1, backgroundColor: 'rgba(245,166,35,0.22)' }} />
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['rgba(13,20,48,0.97)', 'rgba(8,12,24,0.99)']}
+        style={{ flex: 1 }}
+      />
+      <View style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+        backgroundColor: colors.glassBorder,
+      }} />
     </View>
   );
 }
@@ -121,14 +170,13 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#F5A623',
-        tabBarInactiveTintColor: '#3A4465',
+        tabBarActiveTintColor: '#A9B4FF',
+        tabBarInactiveTintColor: colors.textFaint,
         tabBarBackground: () => <TabBarBackground />,
         tabBarStyle: {
-          backgroundColor: '#111C32',
-          borderTopColor: 'rgba(245,166,35,0.22)',
-          borderTopWidth: 1,
-          elevation: 12,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
           height: 64 + bottomInset,
           paddingBottom: bottomInset + 8,
           paddingTop: 6,
@@ -137,10 +185,10 @@ function MainTabs() {
           paddingTop: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11.5,
           fontWeight: '700',
           letterSpacing: 0.3,
-          marginTop: 2,
+          marginTop: 3,
         },
       }}
     >
@@ -149,7 +197,9 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Keşfet',
-          tabBarIcon: ({ color }) => <BookIcon color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon focused={focused}><BookIcon color={color} /></TabIcon>
+          ),
         }}
       />
       <Tab.Screen
@@ -157,7 +207,9 @@ function MainTabs() {
         component={OyunlarScreen}
         options={{
           tabBarLabel: 'Oyunlar',
-          tabBarIcon: ({ color }) => <GameIcon color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon focused={focused}><GameIcon color={color} /></TabIcon>
+          ),
         }}
       />
       <Tab.Screen
@@ -165,7 +217,9 @@ function MainTabs() {
         component={StatsScreen}
         options={{
           tabBarLabel: 'Gelişim',
-          tabBarIcon: ({ color }) => <ChartIcon color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon focused={focused}><ChartIcon color={color} /></TabIcon>
+          ),
         }}
       />
       <Tab.Screen
@@ -173,7 +227,9 @@ function MainTabs() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profil',
-          tabBarIcon: ({ color }) => <PersonIcon color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon focused={focused}><PersonIcon color={color} /></TabIcon>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -198,8 +254,9 @@ export default function App() {
 
   if (hasProfile === null) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111C32' }}>
-        <ActivityIndicator size="large" color="#F5A623" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -208,24 +265,30 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
     <ErrorBoundary>
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style="light" />
       <Stack.Navigator
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          animationDuration: 260,
+          contentStyle: { backgroundColor: colors.bg },
+        }}
         initialRouteName={hasProfile ? 'Main' : 'Onboarding'}
       >
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Game" component={GameScreen} />
-        <Stack.Screen name="Matching" component={MatchingScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Main" component={MainTabs} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Game" component={GameScreen} options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="Matching" component={MatchingScreen} options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="A1" component={A1Screen} />
         <Stack.Screen name="A2" component={A2Screen} />
         <Stack.Screen name="B1" component={B1Screen} />
-        <Stack.Screen name="Artikel" component={ArtikelScreen} />
-        <Stack.Screen name="KelimeAvi" component={KelimeAviScreen} />
-        <Stack.Screen name="Hafiza" component={HafizaScreen} />
+        <Stack.Screen name="Artikel" component={ArtikelScreen} options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="KelimeAvi" component={KelimeAviScreen} options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="Hafiza" component={HafizaScreen} options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="Wortdorf" component={WortdorfScreen} />
         <Stack.Screen name="Neighborhood" component={NeighborhoodScreen} />
-        <Stack.Screen name="Dialog" component={DialogScreen} />
+        <Stack.Screen name="Dialog" component={DialogScreen} options={{ animation: 'fade_from_bottom' }} />
       </Stack.Navigator>
     </NavigationContainer>
     </ErrorBoundary>

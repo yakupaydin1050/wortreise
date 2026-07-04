@@ -8,13 +8,15 @@ const SHEET_MAX_H = Dimensions.get('window').height * 0.88;
 import type { LevelId } from '../utils/storage';
 import { loadFavorites, toggleFavorite } from '../utils/storage';
 import type { WordEntry } from '../data/wordBankA1';
+import { colors } from '../theme';
 
+// Dark premium mapping of the legacy palette keys used throughout this component.
 const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF', surface2: '#EEF1FF',
-  border: '#DDE3F5', borderBright: '#B8C4E8',
-  primary: '#3B5BDB',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  warning: '#D97706',
+  bg: colors.bg, surface: colors.bgSheet, surface2: colors.glassStrong,
+  border: colors.glassBorder, borderBright: colors.glassBorderStrong,
+  primary: colors.primary,
+  text: colors.text, textDim: colors.textDim, textFaint: colors.textFaint,
+  warning: colors.gold,
 };
 
 interface Props {
@@ -127,7 +129,7 @@ export default function WordListModal({ visible, onClose, level, words, title, f
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end',
   },
   backdrop: { ...StyleSheet.absoluteFillObject },
   kav: { width: '100%' },
@@ -174,8 +176,8 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface2, borderWidth: 1.5, borderColor: C.borderBright,
   },
   starBtnActive: {
-    backgroundColor: 'rgba(217,119,6,0.12)',
-    borderColor: 'rgba(217,119,6,0.4)',
+    backgroundColor: colors.goldSoft,
+    borderColor: colors.goldBorder,
   },
   star: { fontSize: 18, color: C.textFaint },
   starActive: { color: C.warning },

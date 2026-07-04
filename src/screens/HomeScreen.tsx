@@ -1,40 +1,28 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadProfile, loadStats, UserProfile, AppStats } from '../utils/storage';
-import GridBackground from '../components/GridBackground';
-
-const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF',
-  border: '#DDE3F5', borderBright: '#B8C4E8',
-  primary: '#3B5BDB', primaryBg: 'rgba(59,91,219,0.10)',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  warning: '#D97706', warningBg: 'rgba(217,119,6,0.12)',
-  success: '#1A9E6E',
-};
+import { alpha, colors, gameAccent, levelAccent, radius, spacing, type } from '../theme';
+import {
+  ScreenBackground, GlassPanel, PressableScale, SectionHeader, ProgressBar, Pill,
+} from '../components/ui';
 
 const LEVELS = [
   {
     id: 'A1', label: 'A1', title: 'Başlangıç Seviyesi',
     desc: 'Temel kelimeler ve günlük konuşmalar.',
-    emoji: '🌱',
-    color: '#3B5BDB', colorBg: 'rgba(59,91,219,0.13)', colorBorder: 'rgba(59,91,219,0.38)',
-    active: true, screen: 'A1' as const,
+    emoji: '🌱', accent: levelAccent.A1, screen: 'A1' as const,
   },
   {
     id: 'A2', label: 'A2', title: 'Temel Seviye',
     desc: 'Günlük konuşmalar ve yaygın ifadeler.',
-    emoji: '📗',
-    color: '#3B7DD8', colorBg: 'rgba(59,125,216,0.13)', colorBorder: 'rgba(59,125,216,0.38)',
-    active: true, screen: 'A2' as const,
+    emoji: '📗', accent: levelAccent.A2, screen: 'A2' as const,
   },
   {
     id: 'B1', label: 'B1', title: 'Orta Seviye',
     desc: 'Karmaşık konular ve geniş kelime hazinesi.',
-    emoji: '🚀',
-    color: '#1A9E6E', colorBg: 'rgba(26,158,110,0.13)', colorBorder: 'rgba(26,158,110,0.38)',
-    active: true, screen: 'B1' as const,
+    emoji: '🚀', accent: levelAccent.B1, screen: 'B1' as const,
   },
 ];
 
@@ -51,110 +39,95 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
     }, []),
   );
 
+  const goalDone = stats !== null && profile !== null && stats.todayCards >= profile.dailyGoal;
+
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
+        {/* Greeting */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>
-            Hoşgeldin,{' '}
-            <Text style={styles.greetingName}>{profile?.name ?? '...'}</Text>
-            {' '}👋
-          </Text>
+          <Text style={styles.greetingHello}>Hoşgeldin 👋</Text>
+          <Text style={styles.greetingName} numberOfLines={1}>{profile?.name ?? '...'}</Text>
         </View>
 
-        {/* Motivation card */}
+        {/* Daily momentum */}
         {stats !== null && profile !== null && (
-          <View style={styles.motivationCard}>
-            <View style={styles.motivationStats}>
-              <View style={styles.motivationStat}>
-                <Text style={[styles.motivationNum, { color: C.warning }]}>{stats.streak}</Text>
-                <Text style={styles.motivationStatLabel}>günlük seri 🔥</Text>
-              </View>
-              <View style={styles.motivationDivider} />
-              <View style={styles.motivationStat}>
-                <Text style={[styles.motivationNum, { color: C.primary }]}>
-                  {stats.todayCards}
-                  <Text style={styles.motivationFraction}>/{profile.dailyGoal}</Text>
+          <GlassPanel emphasis="strong" style={styles.momentum}>
+            <View style={styles.momentumStats}>
+              <View style={styles.momentumStat}>
+                <Text style={[type.numeral, styles.momentumNum, { color: colors.gold }]}>
+                  {stats.streak}
+                  <Text style={styles.momentumEmoji}> 🔥</Text>
                 </Text>
-                <Text style={styles.motivationStatLabel}>günlük kart serisi</Text>
+                <Text style={styles.momentumLabel}>günlük seri</Text>
+              </View>
+              <View style={styles.momentumDivider} />
+              <View style={styles.momentumStat}>
+                <Text style={[type.numeral, styles.momentumNum]}>
+                  {stats.todayCards}
+                  <Text style={styles.momentumFraction}> / {profile.dailyGoal}</Text>
+                </Text>
+                <Text style={styles.momentumLabel}>bugünkü kart</Text>
               </View>
             </View>
-            <View style={styles.motivationBar}>
-              <View style={[styles.motivationBarFill, {
-                width: `${Math.min(stats.todayCards / profile.dailyGoal, 1) * 100}%` as any,
-              }]} />
-            </View>
-            <Text style={stats.todayCards >= profile.dailyGoal ? styles.motivationDone : styles.motivationHint}>
-              {stats.todayCards >= profile.dailyGoal
+            <ProgressBar progress={stats.todayCards / profile.dailyGoal} />
+            <Text style={[styles.momentumHint, goalDone && { color: colors.success }]}>
+              {goalDone
                 ? '✓ Harika! Bugünkü hedef tamamlandı'
                 : `${profile.dailyGoal - stats.todayCards} kart daha — devam et!`}
             </Text>
-          </View>
+          </GlassPanel>
         )}
 
-        {/* Level cards */}
-        {LEVELS.map(item => (
-          item.active ? (
-            <TouchableOpacity key={item.id}
-              style={[styles.levelCard, { backgroundColor: item.colorBg, borderColor: item.colorBorder, borderLeftColor: item.color, shadowColor: item.color }]}
-              onPress={() => navigation.navigate(item.screen!)}
-              activeOpacity={0.85}>
-              <View style={styles.cardTop}>
-                <View style={styles.cardTitleArea}>
-                  <View style={[styles.levelBadge, { backgroundColor: item.color }]}>
-                    <Text style={styles.levelBadgeText}>{item.label}</Text>
+        {/* Levels */}
+        <SectionHeader title="Seviyeler" spaced />
+        <View style={styles.levelList}>
+          {LEVELS.map(item => (
+            <PressableScale
+              key={item.id}
+              onPress={() => navigation.navigate(item.screen)}
+              accessibilityLabel={`${item.label} — ${item.title}`}
+            >
+              <GlassPanel padding={spacing.lg} raised tint={item.accent} style={styles.levelCard}>
+                <View style={[styles.levelIcon, {
+                  backgroundColor: alpha(item.accent, 0.18),
+                  borderColor: alpha(item.accent, 0.4),
+                }]}>
+                  <Text style={styles.levelEmoji}>{item.emoji}</Text>
+                </View>
+                <View style={styles.levelBody}>
+                  <View style={styles.levelTitleRow}>
+                    <Text style={[styles.levelTag, { color: item.accent }]}>{item.label}</Text>
+                    <Text style={styles.levelTitle} numberOfLines={1}>{item.title}</Text>
                   </View>
-                  <Text style={styles.levelTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.levelDesc} numberOfLines={2}>{item.desc}</Text>
                 </View>
-                <Text style={styles.levelEmoji}>{item.emoji}</Text>
-              </View>
-              <Text style={styles.levelDesc}>{item.desc}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View key={item.id}
-              style={[styles.levelCardDisabled, { backgroundColor: item.colorBg, borderColor: item.colorBorder }]}>
-              <View style={styles.cardTop}>
-                <View style={styles.cardTitleArea}>
-                  <View style={[styles.levelBadgeOutline, { backgroundColor: item.colorBg, borderColor: item.color + '55' }]}>
-                    <Text style={[styles.levelBadgeOutlineText, { color: item.color }]}>{item.label}</Text>
-                  </View>
-                  <Text style={styles.levelTitleDisabled} numberOfLines={1}>{item.title}</Text>
-                </View>
-                <View style={styles.soonPill}>
-                  <Text style={styles.soonPillText}>YAKINDA</Text>
-                </View>
-              </View>
-              <Text style={styles.levelDescDisabled}>{item.desc}</Text>
-            </View>
-          )
-        ))}
+                <Text style={[styles.chevron, { color: item.accent }]}>›</Text>
+              </GlassPanel>
+            </PressableScale>
+          ))}
+        </View>
 
-        {/* Wortdorf card */}
-        <TouchableOpacity
-          style={styles.wortdorfCard}
-          onPress={() => navigation.navigate('Wortdorf')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.wortdorfHeader}>
-            <View style={styles.wortdorfTitleArea}>
+        {/* Wortstadt — featured story mode */}
+        <SectionHeader title="Hikâye Modu" spaced />
+        <PressableScale onPress={() => navigation.navigate('Wortdorf')} accessibilityLabel="Wortstadt">
+          <GlassPanel tint={gameAccent.wortdorf} raised padding={spacing.xl} style={styles.wortdorf}>
+            <View style={styles.wortdorfHeader}>
               <Text style={styles.wortdorfIcon}>🏘️</Text>
               <Text style={styles.wortdorfTitle}>Wortstadt</Text>
+              <Pill label="BETA" tint={gameAccent.wortdorf} />
             </View>
-            <View style={styles.wortdorfBadge}>
-              <Text style={styles.wortdorfBadgeText}>BETA</Text>
+            <Text style={styles.wortdorfDesc}>
+              Almanya'da günlük hayatı yaşa — markette, bankada, doktorda Almanca konuş.
+            </Text>
+            <View style={styles.wortdorfFooter}>
+              <Text style={[styles.wortdorfMeta, { color: gameAccent.wortdorf }]}>5 mahalle · 25 mekan</Text>
+              <Text style={[styles.chevron, { color: gameAccent.wortdorf }]}>›</Text>
             </View>
-          </View>
-          <Text style={styles.wortdorfDesc}>
-            Almanya'da günlük hayatı yaşa — markette, bankada, doktorda Almanca konuş.
-          </Text>
-          <View style={styles.wortdorfFooter}>
-            <Text style={styles.wortdorfMeta}>5 mahalle · 25 mekan</Text>
-            <Text style={styles.wortdorfArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
+          </GlassPanel>
+        </PressableScale>
 
         <Text style={styles.footer}>Her gün birkaç kart, büyük bir adım 🚀</Text>
       </ScrollView>
@@ -163,99 +136,55 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#EEF1FF' },
-  container: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48, gap: 12 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  container: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: 56,
+    gap: spacing.md,
+  },
 
-  header: { marginBottom: 4 },
-  greeting: { fontSize: 24, fontWeight: '600', color: C.textDim, letterSpacing: 0.2 },
-  greetingName: { fontSize: 24, fontWeight: '800', color: C.text },
+  header: { marginBottom: spacing.sm, gap: 2 },
+  greetingHello: { ...type.body, fontSize: 16, color: colors.textDim },
+  greetingName: { ...type.display },
 
-  motivationCard: {
-    borderRadius: 18, padding: 20,
-    backgroundColor: 'rgba(217,119,6,0.07)',
-    borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.25)',
-    shadowColor: C.warning, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12, shadowRadius: 12, elevation: 4,
-    gap: 14,
-  },
-  motivationStats: { flexDirection: 'row', alignItems: 'center' },
-  motivationStat: { flex: 1, alignItems: 'center', gap: 2 },
-  motivationNum: { fontSize: 40, fontWeight: '800', letterSpacing: -1, lineHeight: 46 },
-  motivationFraction: { fontSize: 22, fontWeight: '700', letterSpacing: 0, color: C.primary },
-  motivationStatLabel: { fontSize: 13, fontWeight: '600', color: C.textDim },
-  motivationDivider: { width: 1, height: 52, backgroundColor: 'rgba(217,119,6,0.2)', marginHorizontal: 16 },
-  motivationBar: { height: 8, backgroundColor: 'rgba(217,119,6,0.15)', borderRadius: 4, overflow: 'hidden' },
-  motivationBarFill: { height: '100%', backgroundColor: C.primary, borderRadius: 4 },
-  motivationDone: { fontSize: 13, fontWeight: '700', color: C.success, textAlign: 'center' },
-  motivationHint: { fontSize: 13, fontWeight: '600', color: C.textDim, textAlign: 'center' },
+  momentum: { gap: spacing.lg },
+  momentumStats: { flexDirection: 'row', alignItems: 'center' },
+  momentumStat: { flex: 1, alignItems: 'center', gap: 3 },
+  momentumNum: { fontSize: 36, lineHeight: 42 },
+  momentumEmoji: { fontSize: 22 },
+  momentumFraction: { fontSize: 20, fontWeight: '700', color: colors.textDim },
+  momentumLabel: { fontSize: 12.5, fontWeight: '600', color: colors.textDim, letterSpacing: 0.2 },
+  momentumDivider: { width: 1, height: 48, backgroundColor: colors.glassBorder, marginHorizontal: spacing.lg },
+  momentumHint: { fontSize: 13, fontWeight: '600', color: colors.textDim, textAlign: 'center' },
 
-  cardTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
+  levelList: { gap: spacing.md },
+  levelCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  levelIcon: {
+    width: 52, height: 52, borderRadius: radius.md,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
   },
-  cardTitleArea: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8,
-  },
-  levelEmoji: { fontSize: 32, opacity: 0.9 },
+  levelEmoji: { fontSize: 26 },
+  levelBody: { flex: 1, gap: 3 },
+  levelTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+  levelTag: { fontSize: 15, fontWeight: '800', letterSpacing: 0.6 },
+  levelTitle: { ...type.heading, fontSize: 16, flexShrink: 1 },
+  levelDesc: { ...type.caption, lineHeight: 17 },
+  chevron: { fontSize: 26, fontWeight: '400', opacity: 0.8, marginLeft: spacing.xs },
 
-  levelCard: {
-    borderRadius: 18, padding: 20,
-    borderWidth: 1.5, borderLeftWidth: 5,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14, shadowRadius: 12, elevation: 5,
-  },
-  levelCardDisabled: {
-    borderRadius: 18, padding: 20,
-    borderWidth: 1.5, borderLeftWidth: 5, opacity: 0.5,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  levelBadge: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
-  levelBadgeText: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  levelBadgeOutline: {
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1.5,
-  },
-  levelBadgeOutlineText: { fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
-  soonPill: {
-    backgroundColor: C.warningBg, borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.25)',
-  },
-  soonPillText: { fontSize: 10, fontWeight: '700', color: C.warning, letterSpacing: 0.8 },
-  levelTitle: { fontSize: 16, fontWeight: '700', color: C.text, letterSpacing: 0.1, flex: 1 },
-  levelTitleDisabled: { fontSize: 16, fontWeight: '700', color: C.textDim, letterSpacing: 0.1, flex: 1 },
-  levelDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, letterSpacing: 0.1 },
-  levelDescDisabled: { fontSize: 13, color: C.textFaint, lineHeight: 19, letterSpacing: 0.1 },
-
-  wortdorfCard: {
-    backgroundColor: '#FFF8EE', borderRadius: 18, padding: 18, marginBottom: 12,
-    borderWidth: 1.5, borderColor: 'rgba(201,124,46,0.35)', borderLeftWidth: 4,
-    borderLeftColor: '#C97C2E',
-    shadowColor: '#C97C2E', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.14, shadowRadius: 10, elevation: 4,
-  },
-  wortdorfHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-  },
-  wortdorfTitleArea: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 },
-  wortdorfIcon: { fontSize: 28 },
-  wortdorfBadge: {
-    backgroundColor: 'rgba(201,124,46,0.15)', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(201,124,46,0.35)',
-  },
-  wortdorfBadgeText: { fontSize: 10, fontWeight: '700', color: '#C97C2E', letterSpacing: 0.8 },
-  wortdorfTitle: { fontSize: 17, fontWeight: '800', color: C.text, flex: 1 },
-  wortdorfDesc: { fontSize: 13, color: C.textDim, lineHeight: 19, marginBottom: 16 },
+  wortdorf: { gap: spacing.md },
+  wortdorfHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  wortdorfIcon: { fontSize: 26 },
+  wortdorfTitle: { ...type.heading, flex: 1 },
+  wortdorfDesc: { ...type.body, fontSize: 13.5, lineHeight: 20 },
   wortdorfFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: 'rgba(201,124,46,0.2)', paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: colors.glassBorder, paddingTop: spacing.md,
   },
-  wortdorfMeta: { fontSize: 12, fontWeight: '600', color: '#C97C2E' },
-  wortdorfArrow: { fontSize: 20, fontWeight: '700', color: '#C97C2E' },
+  wortdorfMeta: { fontSize: 12.5, fontWeight: '700', letterSpacing: 0.3 },
 
   footer: {
-    textAlign: 'center', fontSize: 12, color: C.textFaint,
-    marginTop: 24, fontWeight: '500', letterSpacing: 0.3,
+    textAlign: 'center', fontSize: 12, color: colors.textFaint,
+    marginTop: spacing.xl, fontWeight: '500', letterSpacing: 0.3,
   },
 });

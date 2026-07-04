@@ -5,21 +5,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loadProfile, UserProfile, getCharacter } from '../utils/storage';
 import { BUILDINGS, Building, DialogChoice } from '../data/wortdorf';
+import { alpha, colors } from '../theme';
+import { ScreenBackground } from '../components/ui';
 
 type Phase = 'lines' | 'choices' | 'reply';
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  surface: '#FFFFFF',
-  border: '#DDE3F5',
-  text: '#1A2340',
-  textDim: '#4E5C80',
-  textFaint: '#8896B8',
-  primary: '#3B5BDB',
-  gold: '#C97C2E',
-  goldBg: 'rgba(201,124,46,0.12)',
-  goldBorder: 'rgba(201,124,46,0.35)',
-  success: '#1A9E6E',
-  successBg: 'rgba(26,158,110,0.10)',
+  surface: colors.glass,
+  border: colors.glassBorder,
+  text: colors.text,
+  textDim: colors.textDim,
+  textFaint: colors.textFaint,
+  primary: colors.primary,
+  gold: colors.gold,
+  goldBg: colors.goldSoft,
+  goldBorder: colors.goldBorder,
+  success: colors.success,
+  successBg: colors.successSoft,
 };
 
 export default function DialogScreen({ route, navigation }: { route: any; navigation: any }) {
@@ -60,9 +63,10 @@ export default function DialogScreen({ route, navigation }: { route: any; naviga
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: building.bgColor }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <ScreenBackground tint={building.color} />
       {/* Portrait section */}
-      <View style={[styles.portraitSection, { backgroundColor: building.bgColor }]}>
+      <View style={styles.portraitSection}>
         <Text style={styles.buildingTitle}>{building.icon} {building.name}</Text>
 
         <View style={styles.portraits}>
@@ -224,9 +228,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backBtnText: { fontSize: 16, color: '#1A2340', fontWeight: '700' },
+  backBtnText: { fontSize: 16, color: colors.text, fontWeight: '700' },
   buildingTitle: {
-    fontSize: 17, fontWeight: '800', color: '#1A2340',
+    fontSize: 17, fontWeight: '800', color: colors.text,
     marginBottom: 20, marginTop: 4,
   },
   portraits: {
@@ -235,25 +239,26 @@ const styles = StyleSheet.create({
   portraitBlock: { alignItems: 'center', gap: 8 },
   portrait: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.glassStrong,
     borderWidth: 3,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
   },
   portraitEmoji: { fontSize: 42 },
-  portraitName: { fontSize: 12, fontWeight: '700', color: '#4E5C80' },
+  portraitName: { fontSize: 12, fontWeight: '700', color: colors.textDim },
   vsLine: {
-    width: 1, height: 40, backgroundColor: 'rgba(0,0,0,0.12)',
+    width: 1, height: 40, backgroundColor: colors.glassBorder,
   },
 
   // Dialog section
   dialogSection: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgSheet,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderWidth: 1, borderColor: colors.glassBorder, borderBottomWidth: 0,
     shadowColor: '#000', shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,
+    shadowOpacity: 0.3, shadowRadius: 16, elevation: 10,
   },
   dialogContent: { padding: 24, gap: 16 },
 
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
   speakerName: { fontSize: 13, fontWeight: '700', color: C.textDim },
 
   dialogBubble: {
-    backgroundColor: '#FAF8F4',
+    backgroundColor: colors.glass,
     borderRadius: 16, padding: 18,
     borderWidth: 1, borderColor: C.border,
   },
@@ -274,7 +279,7 @@ const styles = StyleSheet.create({
   progressDots: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
   dot: {
     width: 7, height: 7, borderRadius: 4,
-    backgroundColor: '#DDE3F5',
+    backgroundColor: colors.glassBorderStrong,
   },
 
   nextBtn: {
@@ -291,8 +296,8 @@ const styles = StyleSheet.create({
   },
   choiceBtn: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#FAF8F4', borderRadius: 14,
-    padding: 16, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: colors.glass, borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: colors.glassBorderStrong,
   },
   choiceBullet: { fontSize: 14, color: C.primary, fontWeight: '800', marginTop: 1 },
   choiceBtnText: { flex: 1, fontSize: 15, color: C.text, fontWeight: '500', lineHeight: 22 },
@@ -312,12 +317,12 @@ const styles = StyleSheet.create({
     borderRadius: 14, padding: 16, borderWidth: 1.5,
   },
   feedbackCorrect: {
-    backgroundColor: 'rgba(26,158,110,0.08)',
-    borderColor: 'rgba(26,158,110,0.3)',
+    backgroundColor: colors.successSoft,
+    borderColor: colors.successBorder,
   },
   feedbackWrong: {
-    backgroundColor: 'rgba(220,38,38,0.08)',
-    borderColor: 'rgba(220,38,38,0.3)',
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.dangerBorder,
   },
   feedbackEmoji: { fontSize: 24, marginTop: 2 },
   feedbackContent: { flex: 1, gap: 4 },
@@ -337,8 +342,8 @@ const styles = StyleSheet.create({
   replyBtns: { flexDirection: 'row', gap: 12 },
   retryBtn: {
     flex: 1, borderRadius: 14, paddingVertical: 15,
-    alignItems: 'center', borderWidth: 1.5, borderColor: C.border,
-    backgroundColor: '#FAF8F4',
+    alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorderStrong,
+    backgroundColor: colors.glass,
   },
   retryBtnText: { fontSize: 15, fontWeight: '700', color: C.textDim },
   doneBtn: {

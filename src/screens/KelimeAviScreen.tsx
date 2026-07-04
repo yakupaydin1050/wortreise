@@ -10,7 +10,8 @@ import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBankA1';
-import GridBackground from '../components/GridBackground';
+import { alpha, colors, gameAccent } from '../theme';
+import { ScreenBackground } from '../components/ui';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import * as Haptics from 'expo-haptics';
@@ -22,21 +23,23 @@ const TIMER_SECONDS = 6;
 
 type Direction = 'tr→de' | 'de→tr';
 const NOTCH_COUNT = 10;
-const OPTION_COLORS = ['#F59E0B', '#3B5BDB', '#7C3AED', '#0891B2'] as const;
+// Bright option accents tuned for the dark canvas
+const OPTION_COLORS = ['#FBBF24', '#7C8CF8', '#A78BFA', '#22D3EE'] as const;
 
 interface HuntWord { id: string; german: string; tr: string }
 interface Best { streak: number; seconds: number }
 interface HistoryItem { word: HuntWord; type: 'correct' | 'wrong' | 'timeout' }
 
+// Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
-  bg: '#FAF8F4', surface: '#FFFFFF',
-  border: '#DDE3F5', borderBright: '#B8C4E8',
-  primary: '#0891B2', primaryBg: 'rgba(8,145,178,0.10)',
-  text: '#1A2340', textDim: '#4E5C80', textFaint: '#8896B8',
-  danger: '#DC2626', dangerBg: 'rgba(220,38,38,0.10)',
-  success: '#1A9E6E', successBg: 'rgba(26,158,110,0.12)',
-  warning: '#D97706', warningBg: 'rgba(217,119,6,0.10)',
-  timeout: '#F97316', timeoutBg: 'rgba(249,115,22,0.10)',
+  bg: colors.bg, surface: colors.glass,
+  border: colors.glassBorder, borderBright: colors.glassBorderStrong,
+  primary: gameAccent.kelimeAvi, primaryBg: alpha(gameAccent.kelimeAvi, 0.12),
+  text: colors.text, textDim: colors.textDim, textFaint: colors.textFaint,
+  danger: colors.danger, dangerBg: colors.dangerSoft,
+  success: colors.success, successBg: colors.successSoft,
+  warning: colors.warning, warningBg: colors.warningSoft,
+  timeout: '#FB923C', timeoutBg: 'rgba(251,146,60,0.12)',
 };
 
 function buildHuntWords(bank: WordEntry[]): HuntWord[] {
@@ -306,14 +309,14 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
 
   const timerBarColor = timerAnim.interpolate({
     inputRange: [0, 0.4, 1],
-    outputRange: ['#DC2626', '#F97316', C.primary],
+    outputRange: [colors.danger, '#FB923C', C.primary],
   });
 
   // ── START ──────────────────────────────────────────────────────────────────
   if (phase === 'start') {
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.kelimeAvi} />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -404,7 +407,7 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
   if (phase === 'result') {
     return (
       <SafeAreaView style={styles.safe}>
-        <GridBackground />
+        <ScreenBackground tint={gameAccent.kelimeAvi} />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -544,15 +547,15 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
   // ── PLAYING ────────────────────────────────────────────────────────────────
   if (!currentWord) return null;
 
-  let cardBg = C.surface;
-  let cardBorder = C.border;
+  let cardBg: string = C.surface;
+  let cardBorder: string = C.border;
   if (feedback === 'correct') { cardBg = C.successBg; cardBorder = C.success; }
   else if (feedback === 'wrong') { cardBg = C.dangerBg; cardBorder = C.danger; }
   else if (feedback === 'timeout') { cardBg = C.timeoutBg; cardBorder = C.timeout; }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GridBackground />
+      <ScreenBackground tint={gameAccent.kelimeAvi} />
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -619,14 +622,14 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
             {currentOptions.slice(0, 2).map((opt, i) => {
               const col = OPTION_COLORS[i];
               let borderColor: string = col;
-              let bg: string = `${col}1A`;
+              let bg: string = `${col}26`;
               let textColor: string = col;
               let opacity = 1;
               if (feedback !== null) {
                 if (opt.id === currentWord.id) {
-                  borderColor = C.success; bg = 'rgba(26,158,110,0.15)'; textColor = C.success;
+                  borderColor = C.success; bg = colors.successSoft; textColor = C.success;
                 } else if (opt.id === chosen) {
-                  borderColor = C.danger; bg = 'rgba(220,38,38,0.10)'; textColor = C.danger;
+                  borderColor = C.danger; bg = colors.dangerSoft; textColor = C.danger;
                 } else {
                   borderColor = C.border; bg = C.bg; textColor = C.textFaint; opacity = 0.35;
                 }
@@ -646,14 +649,14 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
             {currentOptions.slice(2, 4).map((opt, i) => {
               const col = OPTION_COLORS[i + 2];
               let borderColor: string = col;
-              let bg: string = `${col}1A`;
+              let bg: string = `${col}26`;
               let textColor: string = col;
               let opacity = 1;
               if (feedback !== null) {
                 if (opt.id === currentWord.id) {
-                  borderColor = C.success; bg = 'rgba(26,158,110,0.15)'; textColor = C.success;
+                  borderColor = C.success; bg = colors.successSoft; textColor = C.success;
                 } else if (opt.id === chosen) {
-                  borderColor = C.danger; bg = 'rgba(220,38,38,0.10)'; textColor = C.danger;
+                  borderColor = C.danger; bg = colors.dangerSoft; textColor = C.danger;
                 } else {
                   borderColor = C.border; bg = C.bg; textColor = C.textFaint; opacity = 0.35;
                 }
@@ -676,34 +679,34 @@ export default function KelimeAviScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: 'rgba(8,145,178,0.07)' },
+  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: 'rgba(8,145,178,0.07)', borderBottomWidth: 1, borderBottomColor: 'rgba(8,145,178,0.2)',
+    borderBottomWidth: 1, borderBottomColor: colors.glassBorder,
   },
   backBtn: {
-    backgroundColor: '#E0F7FC', borderRadius: 12,
+    backgroundColor: colors.glassStrong, borderRadius: 12,
     width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(8,145,178,0.35)',
+    borderWidth: 1, borderColor: colors.glassBorderStrong,
   },
-  backBtnText: { fontSize: 20, color: C.primary },
+  backBtnText: { fontSize: 20, color: colors.text },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '800', color: C.text, letterSpacing: 0.2 },
   headerSub: { fontSize: 12, color: C.textDim, marginTop: 2, letterSpacing: 0.2 },
   streakPill: {
-    borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.35)', borderRadius: 20,
+    borderWidth: 1.5, borderColor: colors.goldBorder, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 6, minWidth: 54, alignItems: 'center',
-    backgroundColor: '#FFF8ED',
+    backgroundColor: colors.goldSoft,
   },
-  streakPillText: { fontSize: 14, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
+  streakPillText: { fontSize: 14, fontWeight: '800', color: colors.gold, letterSpacing: 0.3 },
 
   timerRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 6,
-    backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border, gap: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border, gap: 10,
   },
-  timerTrack: { flex: 1, height: 8, backgroundColor: '#E0F7FC', borderRadius: 4, overflow: 'hidden' },
+  timerTrack: { flex: 1, height: 8, backgroundColor: alpha(gameAccent.kelimeAvi, 0.12), borderRadius: 4, overflow: 'hidden' },
   timerBar: { height: 8, borderRadius: 4 },
   timerNum: { fontSize: 13, fontWeight: '700', color: C.textDim, minWidth: 24, textAlign: 'right' },
 
@@ -737,12 +740,11 @@ const styles = StyleSheet.create({
   dirSub: { fontSize: 10, fontWeight: '600', color: C.textFaint, letterSpacing: 0.3 },
   dirSubActive: { color: C.primary },
   bestCard: {
-    width: '100%', backgroundColor: C.warningBg, borderRadius: 18,
+    width: '100%', backgroundColor: colors.goldSoft, borderRadius: 18,
     padding: 22, alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.warning,
-    shadowColor: C.warning, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: colors.goldBorder,
+    shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 4,
   },
   bestLabel: { fontSize: 10, fontWeight: '700', color: C.textFaint, letterSpacing: 2 },
   bestStreak: { fontSize: 36, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
@@ -753,9 +755,9 @@ const styles = StyleSheet.create({
     width: '100%', backgroundColor: C.primary, borderRadius: 16,
     paddingVertical: 16, alignItems: 'center', marginTop: 4,
     shadowColor: C.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
+    shadowOpacity: 0.35, shadowRadius: 12, elevation: 5,
   },
-  startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
+  startBtnText: { color: '#081018', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
 
   // Result
   resultScroll: {
@@ -764,10 +766,9 @@ const styles = StyleSheet.create({
   resultStatsCard: {
     backgroundColor: C.primaryBg, borderRadius: 20, padding: 24,
     alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: 'rgba(8,145,178,0.28)',
-    borderLeftWidth: 4, borderLeftColor: C.primary,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: alpha(gameAccent.kelimeAvi, 0.3),
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 14, elevation: 5,
   },
   resultIcon: { fontSize: 52, marginBottom: 4 },
   resultStatsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
@@ -775,13 +776,13 @@ const styles = StyleSheet.create({
   resultStreakLabel: { fontSize: 18, fontWeight: '700', color: C.textDim, marginBottom: 10 },
   resultTime: { fontSize: 14, color: C.textFaint, fontWeight: '500' },
   newRecordBadge: {
-    backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 14,
+    backgroundColor: colors.goldSoft, borderRadius: 14,
     paddingHorizontal: 22, paddingVertical: 10, marginTop: 4,
-    borderWidth: 1.5, borderColor: 'rgba(217,119,6,0.3)',
+    borderWidth: 1.5, borderColor: colors.goldBorder,
   },
-  newRecordText: { fontSize: 15, fontWeight: '800', color: C.warning, letterSpacing: 0.3 },
+  newRecordText: { fontSize: 15, fontWeight: '800', color: colors.gold, letterSpacing: 0.3 },
   prevRecord: {
-    backgroundColor: 'rgba(8,145,178,0.07)', borderRadius: 10,
+    backgroundColor: colors.glass, borderRadius: 10,
     paddingHorizontal: 18, paddingVertical: 8, marginTop: 4,
     borderWidth: 1, borderColor: C.border,
   },
@@ -805,17 +806,17 @@ const styles = StyleSheet.create({
   historyTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
   reportIconBtn: {
     width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(220,38,38,0.07)', borderWidth: 1, borderColor: 'rgba(220,38,38,0.2)',
+    backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.dangerBorder,
   },
   reportIconText: { fontSize: 16, color: C.danger },
   reportIconTextReported: { color: C.textFaint },
 
   // Report modal
   reportOverlay: {
-    flex: 1, backgroundColor: 'rgba(10,20,60,0.45)',
+    flex: 1, backgroundColor: colors.backdrop,
   },
   reportSheet: {
-    backgroundColor: C.surface,
+    backgroundColor: colors.bgSheet,
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 32,
     borderTopWidth: 1, borderColor: C.border,
@@ -829,12 +830,12 @@ const styles = StyleSheet.create({
   reportTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: 0.2, marginBottom: 12 },
   reportWordBox: {
     backgroundColor: C.primaryBg, borderRadius: 12, padding: 12, marginBottom: 12,
-    borderWidth: 1, borderColor: 'rgba(8,145,178,0.2)', gap: 3,
+    borderWidth: 1, borderColor: alpha(gameAccent.kelimeAvi, 0.25), gap: 3,
   },
   reportWordDe: { fontSize: 15, fontWeight: '700', color: C.text },
   reportWordTr: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
   reportInput: {
-    backgroundColor: '#FAF8F4', borderRadius: 12,
+    backgroundColor: 'rgba(8,12,24,0.55)', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: C.text, fontWeight: '500',
     borderWidth: 1.5, borderColor: C.borderBright,
@@ -857,8 +858,8 @@ const styles = StyleSheet.create({
   reportSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
   reportSuccessBox: { alignItems: 'center', paddingVertical: 20, gap: 12 },
   reportSuccessIcon: {
-    fontSize: 38, color: '#1A9E6E',
-    backgroundColor: 'rgba(26,158,110,0.12)', borderRadius: 28,
+    fontSize: 38, color: colors.success,
+    backgroundColor: colors.successSoft, borderRadius: 28,
     width: 56, height: 56, textAlign: 'center', lineHeight: 56, overflow: 'hidden',
   },
   reportSuccessText: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
@@ -870,7 +871,7 @@ const styles = StyleSheet.create({
   notchRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   notch: {
     width: 22, height: 8, borderRadius: 4,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: 'rgba(8,145,178,0.07)',
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: colors.glass,
   },
   notchFilled: {
     backgroundColor: C.primary, borderColor: C.primary,
@@ -878,11 +879,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5, shadowRadius: 3, elevation: 2,
   },
   lapBadge: {
-    marginLeft: 4, backgroundColor: 'rgba(217,119,6,0.12)', borderRadius: 8,
+    marginLeft: 4, backgroundColor: colors.goldSoft, borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: 'rgba(217,119,6,0.3)',
+    borderWidth: 1, borderColor: colors.goldBorder,
   },
-  lapBadgeText: { fontSize: 11, fontWeight: '800', color: C.warning },
+  lapBadgeText: { fontSize: 11, fontWeight: '800', color: colors.gold },
 
   streakDisplay: { alignItems: 'center', gap: 2 },
   streakNum: { fontSize: 44, fontWeight: '900', color: C.text, letterSpacing: -2 },

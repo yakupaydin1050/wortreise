@@ -36,8 +36,8 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "androidNavigationBar": {
-        "backgroundColor": "#FFFFFF",
-        "barStyle": "dark-content"
+        "backgroundColor": "#080C18",
+        "barStyle": "light-content"
       }
     },
     "web": {
