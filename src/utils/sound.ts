@@ -42,38 +42,54 @@ export async function preloadSounds(): Promise<void> {
 
 export function playCorrectSound(): void {
   if (!_enabled) return;
-  if (Platform.OS === 'web') { playWebTone(880, 1108, 0.22); return; }
+  if (Platform.OS === 'web') {
+    // Soft two-note bell chime, matches the native correct.wav (D5 -> A5)
+    playWebNotes([
+      { freq: 587.33, start: 0, dur: 0.32, vol: 0.16 },
+      { freq: 880.0, start: 0.08, dur: 0.48, vol: 0.2 },
+    ]);
+    return;
+  }
   if (!_correctSound) return;
   _correctSound.setPositionAsync(0).then(() => _correctSound!.playAsync().catch(() => {})).catch(() => {});
 }
 
 export function playWrongSound(): void {
   if (!_enabled) return;
-  if (Platform.OS === 'web') { playWebTone(220, 311, 0.28); return; }
+  if (Platform.OS === 'web') {
+    // Gentle low double-knock, matches the native wrong.wav (G3 -> Eb3)
+    playWebNotes([
+      { freq: 196.0, start: 0, dur: 0.28, vol: 0.24 },
+      { freq: 155.56, start: 0.115, dur: 0.38, vol: 0.26 },
+    ]);
+    return;
+  }
   if (!_wrongSound) return;
   _wrongSound.setPositionAsync(0).then(() => _wrongSound!.playAsync().catch(() => {})).catch(() => {});
 }
 
-function playWebTone(freq1: number, freq2: number, dur: number): void {
+interface WebNote { freq: number; start: number; dur: number; vol: number }
+
+function playWebNotes(notes: WebNote[]): void {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc1.frequency.value = freq1;
-    osc2.frequency.value = freq2;
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-
     const now = ctx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.22, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-    osc1.start(now); osc2.start(now);
-    osc1.stop(now + dur); osc2.stop(now + dur);
+    for (const n of notes) {
+      const t0 = now + n.start;
+      // fundamental + quiet 2nd harmonic for a rounder, bell-like body
+      for (const [mult, amp] of [[1, 1], [2, 0.25]] as const) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = n.freq * mult;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(n.vol * amp, t0 + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0008, t0 + n.dur);
+        osc.start(t0);
+        osc.stop(t0 + n.dur + 0.02);
+      }
+    }
   } catch {
     // Web Audio API desteklenmiyorsa sessizce geç
   }
