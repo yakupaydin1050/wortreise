@@ -186,3 +186,121 @@ Durum: iOS 1.1.0 (5) App Store incelemesinde; Android 1.1.0 (8)
 .aab'si Play Console yüklemesi bekliyor. Telegram bildirimleri iki
 platformun store build'lerinde de aktif olacak.
 ═══════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-05)
+  GIZLILIK POLITIKASI URL'İ (404) DÜZELTİLDİ
+═══════════════════════════════════════════════════════════════
+
+1) SORUN — 404 GİZLİLİK POLİTİKASI LİNKİ
+   - Store listelemelerinde verilen link
+       github.com/yakupaydin1050/wortreise/blob/master/docs/
+       privacy-policy.md
+     "404 - page not found" veriyordu; dosya repoda hiç yoktu.
+   - Politika metni yalnızca uygulama içinde src/data/policies.ts
+     içine gömülüydü, ayrı bir sayfa yoktu.
+
+2) ÇÖZÜM
+   - docs/privacy-policy.md eklendi (TR/DE/EN). İçerik policies.ts
+     ile birebir aynı; GitHub blob görünümü markdown'ı düzgün
+     render ediyor, URL artık çalışıyor.
+   - "Son güncelleme" tarihi her yerde Mayıs 2026 -> Temmuz 2026
+     yapıldı: markdown + policies.ts (gizlilik + kullanım koşulları,
+     TR "Temmuz", DE "Juli", EN "July").
+
+3) GIT
+   - b00c45f  docs: add privacy policy page + bump policy dates to
+     July 2026 (2 dosya). Doğrudan master'a push edildi.
+
+Not: policies.ts uygulama içi metin olduğundan oradaki tarih ancak
+bir sonraki build'de görünür; store'daki gizlilik LİNKİ ise markdown'a
+baktığı için hemen güncel/erişilebilir.
+═══════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-19)
+  fix-2.txt: 20 MADDELİK HATA/İYİLEŞTİRME + 1.2.0 SÜRÜM
+═══════════════════════════════════════════════════════════════
+
+Kullanıcı testinden çıkan fix-2.txt listesi (20 madde + mağaza ismi)
+tek sürümde toplandı. tsc temiz (kalan hatalar yalnızca önceden var
+olan src/data/wortdorf.ts; dokunulmadı).
+
+A) İÇERİK (word bank) DÜZELTMELERİ
+   - backen: targetWord 'backen' -> 'backt' (cümle zaten "backt";
+     boşlukla uyumsuzdu). gratulieren: 'gratulieren' -> 'gratuliere'.
+     (İkisinde de Almanca cümle doğruydu; hata targetWord'ün mastar
+     kalmasıydı.)
+   - neun: "Das Kind ist ___ Jahre alt." -> "Nach acht kommt ___."
+     (sayı şıklarında tek doğru cevap = neun).
+   - neblig (A2): "Es ist ___." -> "Im Herbst ist es morgens oft ___
+     und kalt." + TR/EN + glossary.
+   - sparen (A2): "Ich muss ___." -> "Ich muss für ein neues Auto ___."
+     + TR/EN + glossary.
+   - der Student (eşleştirme): glossary de 'der Student' -> 'die
+     Studenten' (çoğul "öğrenciler" ile uyum).
+   - die Verabredung: A1'den B1'e taşındı (seviye = kelime bankası
+     dosyasıyla belirleniyor).
+   - spazieren & einkaufen: hata yok, değişmedi (fiil küçük harf /
+     "gehen + Infinitiv" doğru).
+
+B) SÜRE / UI
+   - Boşluk doldurma süreleri: 30sn çıkarıldı, 120sn eklendi
+     -> [45/60/120/∞] (LevelScreenBase).
+   - Oyun tur sayaçları +1sn: Kelime Avı 6->7, Artikel 8->9.
+   - Aktif süre butonu belirginleştirildi (tam accent kenarlık +
+     dolgu; koyu zeminde okunur).
+   - Sözlük (glossary) kelimeleri artık renk değiştirmiyor; sadece
+     ince altı çizili kalıyor -> boşluk doldurma okunurluğu rahatladı
+     (SentenceRow).
+   - Arka plan: tek renkli disk yerine çok renkli aurora (violet +
+     ekran accent'i + cyan + indigo, yumuşak geçişli) — ScreenBackground.
+
+C) HATA BİLDİR / DEĞERLENDİRME POP-UP (Android)
+   - Hata Bildir gönderimi artık ağı BEKLEMEDEN modalı hemen kapatıyor
+     (optimistic); Firestore yazımı arka planda. Android'de askıda
+     kalan/kapanmayan pop-up düzeldi — 5 oyun ekranının hepsinde.
+   - GameScreen: reportedIds her yeni kartta sıfırlanıyor; önceki
+     kartta bildirilen soru numarası sonraki kartta "bildirildi"
+     görünmüyor (kart id'leri hep s0..s4 olduğu için sızıyordu).
+   - Yerleşik mağaza değerlendirme kartı: shouldPromptReview artık
+     tek-seferlik bayrağı önceden yakmıyor; yeni markReviewShown()
+     yalnızca kart gerçekten gösterilince (isAvailable) çağrılıyor.
+     Böylece kart bir kez uygun olmayınca bir daha hiç çıkmama bug'ı
+     giderildi. (Kartın kendi davranışı Google/Apple'a ait; dev/yan-
+     yüklemede zaten no-op.)
+
+D) İLERLEME / USTALIK
+   - Kelime Avı ve Artikel oyunlarında doğru/yanlış cevaplar artık
+     kelime ustalığını besliyor (recordWordResults; her ikisi de
+     kelime-id + seviye taşıyor). 3 kez doğru -> "öğrenildi" barına
+     ekleniyor. (Eşleştirme/Hafıza kalıcı id taşımadığından kapsam
+     dışı.)
+   - Tekrar Çalış: kelime tur içinde 3 kez doğru yapılınca havuzdan
+     DİNAMİK düşüyor — "Yeni Tur"da storage'dan taze wrongIds
+     yükleniyor; havuz boşalınca "Tebrikler" mesajı + geri dönüş.
+     (Önceden ancak seviye ekranına geri gidilince düşüyordu.)
+   - İlerleme kartına "Öğrenilen Kelimeler" butonu eklendi (Tekrar
+     Çalış gibi); WordListModal öğrenilen kelimeleri listeliyor,
+     kelime yoksa bilgilendirici boş-durum mesajı gösteriyor.
+
+E) SÜRE BİTİMİ UYARISI (madde 21 — fix-19-7-2026.txt)
+   - Geri sayımın son saniyelerinde: yumuşak "tik" sesi (her saniye) +
+     sayaç kırmızıya döner + yanıp söner (opacity pulse) + hafif haptic.
+     Ses/haptic aç-kapa ayarına saygılı; ses kapalıysa görsel devam eder.
+   - Pencere: Boşluk Doldur ve Eşleştirme son 5 sn; Kelime Avı (7sn) ve
+     Artikel (9sn) tur-başı sayaçları kısa olduğu için son 3 sn (spam
+     olmasın diye). Hafıza kronometre olduğundan hariç.
+   - Yeni asset assets/sounds/tick.wav (bağımlılıksız Node betiğiyle
+     üretildi, ~1100 Hz / ~110 ms). sound.ts'e playTickSound() eklendi
+     (native tick.wav, web sentez); preloadSounds tick'i de önyüklüyor.
+
+F) SÜRÜM
+   - Pazarlama sürümü 1.1.0 -> 1.2.0 (app.json + Profil ekranı).
+   - Build numarası (iOS buildNumber / Android versionCode) EAS
+     tarafından otomatik artıyor (eas.json: appVersionSource=remote,
+     autoIncrement=true) — elle güncellenmedi.
+
+Durum: Kullanıcı önce Expo Go ile elle test edecek; ardından commit
+gruplama (içerik / UI-logic / sürüm), push ve yeni iOS build.
+═══════════════════════════════════════════════════════════════
