@@ -304,3 +304,51 @@ F) SÜRÜM
 Durum: Kullanıcı önce Expo Go ile elle test edecek; ardından commit
 gruplama (içerik / UI-logic / sürüm), push ve yeni iOS build.
 ═══════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════
+  WORTREISE — Çalışma Özeti  (2026-07-19, devam)
+  1.2.0 GIT PUSH + iOS BUILD (6) + APP STORE SUBMIT + ASO
+═══════════════════════════════════════════════════════════════
+
+1) GIT — origin/master'a push edildi (3 gruplu commit)
+   - f9d0e26 fix(content): A1/A2 düzeltmeleri + Verabredung -> B1
+   - e1a5c39 feat: fix-2 UX düzeltmeleri + son-saniye geri sayım uyarısı
+     (madde 21) + assets/sounds/tick.wav
+   - ab6c92b chore: sürüm 1.2.0'a bump + recap
+   Aralık: b00c45f..ab6c92b. tsc temiz (yalnızca önceden var olan
+   wortdorf.ts hataları).
+
+2) iOS BUILD (EAS)
+   - eas build -p ios --profile production ile tetiklendi.
+   - Sonuç: FINISHED. Version 1.2.0, Build number 6 (EAS autoIncrement,
+     appVersionSource=remote). SDK 54. Commit ab6c92b.
+   - Build id: 0b232346-77f2-430c-a1b2-e2bc09e31325.
+   - Kimlik bilgileri hazırdı (Dist. Cert. + Prov. Profile, exp 2027-05-31).
+
+3) APP STORE CONNECT SUBMIT
+   - eas submit -p ios --profile production --latest (non-interactive).
+   - ASC API Key EAS sunucularında kayıtlıydı (KL665U9ZWW); interaktif
+     giriş gerekmedi. ascAppId 6774772723.
+   - Submission id: c8133dc9-9d72-40f2-8bb3-8149f1263e26. Binary yüklendi;
+     Apple processing'de (TestFlight'ta 1.2.0 (6) olarak belirecek).
+
+4) MAĞAZA METİNLERİ (kullanıcıya hazırlandı, App Store Connect'e elle
+   girilecek)
+   - Promotional Text (170 krk) ve "What's New" 1.2.0 (TR + EN) taslakları
+     verildi.
+   - ASO önerileri (Türk kullanıcı "almanca kelime öğrenme" vb. arayınca
+     bulunsun):
+       Name (30):     "Wortreise: Almanca Kelime"
+       Subtitle (30): "Oyunlarla Gramer ve Sözlük" (şu an boş — en büyük
+                      kazanç burada)
+       Keywords (100, boşluksuz): lernspiel/vokabular/flashcard atıldı;
+         deutsch,öğrenme,ezber,sınav,seviye,telaffuz,cümle,artikel,pratik,
+         quiz,a1,a2,b1,dil,goethe,lernen (Türkçe karaktersiz ASCII varyant
+         alternatifi de önerildi).
+   - Mantık: Apple Name+Subtitle+Keywords'ü kombinleyerek ifade üretir;
+     almanca+kelime+öğrenme ayrı ayrı yeterli.
+
+Durum: iOS 1.2.0 (6) App Store Connect'e submit edildi, Apple processing
+bekleniyor. Mağaza metinleri/ASO kullanıcı tarafından girilecek; sonra
+1.2.0 için yeni sürüm oluşturulup incelemeye gönderilecek.
+═══════════════════════════════════════════════════════════════
