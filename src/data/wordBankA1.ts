@@ -4196,7 +4196,7 @@ export const wordBank: WordEntry[] = [
     sentences: [
       {
         id: 'backen-1',
-        targetWord: 'backen',
+        targetWord: 'backt',
         german: 'Meine Mutter backt gern Kuchen.',
         germanWithBlank: 'Meine Mutter ___ gern Kuchen.',
         translationTR: 'Annem pasta yapmayı seviyor.',
@@ -8865,27 +8865,6 @@ export const wordBank: WordEntry[] = [
           'habe': { tr: 'sahip olmak / yardımcı fiil (ben)', en: 'have (auxiliary)', de: 'haben' },
           'eine': { tr: 'bir (dişil belirtisiz)', en: 'a/an (feminine)', de: 'eine' },
           'bekommen': { tr: 'almak, teslim almak (geçmiş)', en: 'received', de: 'bekommen' },
-        },
-      },
-    ],
-  },
-  {
-    id: 'die-verabredung',
-    word: 'die Verabredung',
-    tr: 'randevu / sözleşme',
-    sentences: [
-      {
-        id: 'verabredung-1',
-        targetWord: 'Verabredung',
-        german: 'Ich habe heute eine Verabredung.',
-        germanWithBlank: 'Ich habe heute eine ___.',
-        translationTR: 'Bugün bir randevum var.',
-        translationEN: 'I have an appointment today.',
-        glossary: {
-          'ich': { tr: 'ben', en: 'I', de: 'ich' },
-          'habe': { tr: 'sahip olmak (ben)', en: 'have', de: 'haben' },
-          'heute': { tr: 'bugün', en: 'today', de: 'heute' },
-          'eine': { tr: 'bir (dişil belirtisiz)', en: 'a/an (feminine)', de: 'eine' },
         },
       },
     ],
@@ -13923,14 +13902,14 @@ export const wordBank: WordEntry[] = [
       {
         id: 'neun-1',
         targetWord: 'neun',
-        german: 'Das Kind ist neun Jahre alt.',
-        germanWithBlank: 'Das Kind ist ___ Jahre alt.',
-        translationTR: 'Çocuk dokuz yaşında.',
-        translationEN: 'The child is nine years old.',
+        german: 'Nach acht kommt neun.',
+        germanWithBlank: 'Nach acht kommt ___.',
+        translationTR: 'Sekizden sonra dokuz gelir.',
+        translationEN: 'After eight comes nine.',
         glossary: {
-          kind: { tr: 'çocuk', en: 'child', de: 'das Kind' },
-          jahre: { tr: 'yıllar / yaşında', en: 'years old', de: 'das Jahr' },
-          alt: { tr: 'yaşında', en: 'old' },
+          nach: { tr: 'sonra', en: 'after' },
+          acht: { tr: 'sekiz', en: 'eight' },
+          kommt: { tr: 'gelir', en: 'comes', de: 'kommen' },
         },
       },
     ],
@@ -14117,7 +14096,7 @@ export const wordBank: WordEntry[] = [
         translationTR: 'Sınıfta on dokuz öğrenci var.',
         translationEN: 'There are nineteen students in the class.',
         glossary: {
-          studenten: { tr: 'öğrenciler', en: 'students', de: 'der Student' },
+          studenten: { tr: 'öğrenciler', en: 'students', de: 'die Studenten' },
           klasse: { tr: 'sınıf', en: 'class', de: 'die Klasse' },
         },
       },
@@ -14567,7 +14546,7 @@ export const wordBank: WordEntry[] = [
     sentences: [
       {
         id: 'gratulieren-1',
-        targetWord: 'gratulieren',
+        targetWord: 'gratuliere',
         german: 'Ich gratuliere dir zum Geburtstag!',
         germanWithBlank: 'Ich ___ dir zum Geburtstag!',
         translationTR: 'Seni doğum günün için tebrik ederim!',

@@ -20166,6 +20166,27 @@ export const wordBankB1: WordEntry[] = [
     }],
   },
   {
+    id: 'die-verabredung',
+    word: 'die Verabredung',
+    tr: 'randevu / sözleşme',
+    sentences: [
+      {
+        id: 'verabredung-1',
+        targetWord: 'Verabredung',
+        german: 'Ich habe heute eine Verabredung.',
+        germanWithBlank: 'Ich habe heute eine ___.',
+        translationTR: 'Bugün bir randevum var.',
+        translationEN: 'I have an appointment today.',
+        glossary: {
+          'ich': { tr: 'ben', en: 'I', de: 'ich' },
+          'habe': { tr: 'sahip olmak (ben)', en: 'have', de: 'haben' },
+          'heute': { tr: 'bugün', en: 'today', de: 'heute' },
+          'eine': { tr: 'bir (dişil belirtisiz)', en: 'a/an (feminine)', de: 'eine' },
+        },
+      },
+    ],
+  },
+  {
     id: 'sich-verabreden',
     word: '(sich) verabreden',
     tr: 'sözleşmek / randevulaşmak',

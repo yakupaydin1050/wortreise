@@ -2491,10 +2491,16 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'neblig-1',
       targetWord: 'neblig',
-      german: 'Es ist neblig.',
-      germanWithBlank: 'Es ist ___.',
-      translationTR: 'Hava sisli.',
-      translationEN: '',
+      german: 'Im Herbst ist es morgens oft neblig und kalt.',
+      germanWithBlank: 'Im Herbst ist es morgens oft ___ und kalt.',
+      translationTR: 'Sonbaharda sabahları hava genellikle sisli ve soğuk olur.',
+      translationEN: 'In autumn it is often foggy and cold in the mornings.',
+      glossary: {
+        herbst: { tr: 'sonbahar', en: 'autumn', de: 'der Herbst' },
+        morgens: { tr: 'sabahları', en: 'in the mornings' },
+        oft: { tr: 'sık sık / genellikle', en: 'often' },
+        kalt: { tr: 'soğuk', en: 'cold' },
+      },
     }],
   },
   {
@@ -3856,10 +3862,16 @@ export const wordBankA2: WordEntry[] = [
     sentences: [{
       id: 'sparen-1',
       targetWord: 'sparen',
-      german: 'Ich muss sparen.',
-      germanWithBlank: 'Ich muss ___.',
-      translationTR: 'Tasarruf etmem (para biriktirmem) gerekiyor.',
-      translationEN: '',
+      german: 'Ich muss für ein neues Auto sparen.',
+      germanWithBlank: 'Ich muss für ein neues Auto ___.',
+      translationTR: 'Yeni bir araba için para biriktirmem gerekiyor.',
+      translationEN: 'I have to save up for a new car.',
+      glossary: {
+        muss: { tr: 'zorunda / -meli (ben)', en: 'must / have to', de: 'müssen' },
+        ein: { tr: 'bir', en: 'a/an' },
+        neues: { tr: 'yeni', en: 'new', de: 'neu' },
+        auto: { tr: 'araba', en: 'car', de: 'das Auto' },
+      },
     }],
   },
   {
