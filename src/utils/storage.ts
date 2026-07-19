@@ -347,19 +347,29 @@ export async function shouldPromptReview(): Promise<boolean> {
     const shown = await AsyncStorage.getItem(REVIEW_KEY);
     if (shown) return false;
     const [gs, stats] = await Promise.all([loadGameStats(), loadStats()]);
-    const triggered =
+    return (
       gs.artikel.sessions   >= REVIEW_THRESHOLD ||
       gs.kelimeAvi.sessions  >= REVIEW_THRESHOLD ||
       gs.eslestirme.sessions >= REVIEW_THRESHOLD ||
       gs.hafiza.sessions     >= REVIEW_THRESHOLD ||
-      stats.totalCards       >= REVIEW_THRESHOLD;
-    if (triggered) {
-      await AsyncStorage.setItem(REVIEW_KEY, '1');
-      return true;
-    }
-    return false;
+      stats.totalCards       >= REVIEW_THRESHOLD
+    );
   } catch {
     return false;
+  }
+}
+
+/**
+ * Marks the native review prompt as shown. Call this ONLY after
+ * StoreReview.requestReview() actually runs (i.e. the card is available) —
+ * otherwise the one-shot flag would burn on platforms/builds where the native
+ * card never appears, and the prompt would never fire on a real store install.
+ */
+export async function markReviewShown(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(REVIEW_KEY, '1');
+  } catch {
+    // best-effort; a missed flag only means we may prompt again later
   }
 }
 

@@ -26,9 +26,11 @@ interface Props {
   words: WordEntry[];
   title: string;
   favoritesOnly?: boolean;
+  /** Message shown when the list is empty (e.g. no learned words yet). */
+  emptyMessage?: string;
 }
 
-export default function WordListModal({ visible, onClose, level, words, title, favoritesOnly = false }: Props) {
+export default function WordListModal({ visible, onClose, level, words, title, favoritesOnly = false, emptyMessage }: Props) {
   const [query, setQuery] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
@@ -89,9 +91,13 @@ export default function WordListModal({ visible, onClose, level, words, title, f
                 {displayWords.length === 0 ? (
                   <View style={styles.empty}>
                     <Text style={styles.emptyText}>
-                      {favoritesOnly
-                        ? 'Henüz favori kelime yok.\nKelime listesinden ★ ile ekleyebilirsin.'
-                        : 'Kelime bulunamadı.'}
+                      {query.trim()
+                        ? 'Kelime bulunamadı.'
+                        : emptyMessage
+                          ? emptyMessage
+                          : favoritesOnly
+                            ? 'Henüz favori kelime yok.\nKelime listesinden ★ ile ekleyebilirsin.'
+                            : 'Kelime bulunamadı.'}
                     </Text>
                   </View>
                 ) : (

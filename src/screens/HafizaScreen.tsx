@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { recordHafizaGame, shouldPromptReview } from '../utils/storage';
+import { recordHafizaGame, shouldPromptReview, markReviewShown } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
@@ -324,7 +324,10 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     setIsNewRecord(isNew);
     recordHafizaGame(completedTime, moves);
     shouldPromptReview().then(yes => {
-      if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+      if (!yes) return;
+      StoreReview.isAvailableAsync().then(ok => {
+        if (ok) { StoreReview.requestReview(); markReviewShown(); }
+      });
     });
   }, [completedTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -407,27 +410,22 @@ export default function HafizaScreen({ navigation }: { navigation: any }) {
     setReportVisible(true);
   }, []);
 
-  const submitReport = useCallback(async () => {
+  const submitReport = useCallback(() => {
     if (!reportItem) return;
-    setReportSending(true);
-    try {
-      await sendReport('reports', {
-        game: 'hafiza',
-        level,
-        difficulty,
-        german: reportItem.german,
-        tr: reportItem.tr,
-        wordId: reportItem.pairId,
-        note: reportNote.trim(),
-      });
-      setReportedIds(prev => new Set(prev).add(reportItem.pairId));
-      setReportSent(true);
-      setTimeout(() => setReportVisible(false), 1400);
-    } catch (_) {
-      // silently fail
-    } finally {
-      setReportSending(false);
-    }
+    const payload = {
+      game: 'hafiza',
+      level,
+      difficulty,
+      german: reportItem.german,
+      tr: reportItem.tr,
+      wordId: reportItem.pairId,
+      note: reportNote.trim(),
+    };
+    // Optimistic: confirm and auto-close without blocking on the network (item 3).
+    setReportedIds(prev => new Set(prev).add(reportItem.pairId));
+    setReportSent(true);
+    sendReport('reports', payload).catch(() => {});
+    setTimeout(() => setReportVisible(false), 1400);
   }, [reportItem, reportNote, level, difficulty]);
 
   const playedPairs = useMemo<ReportItem[]>(() => {

@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCard, getDistractors } from '../data/generateCard';
-import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, loadGameStats, loadAllProgress, loadUnlockedAchievements, unlockAchievements, UserProfile } from '../utils/storage';
+import { loadProfile, recordCardCompleted, recordWordResults, shouldPromptReview, markReviewShown, loadGameStats, loadAllProgress, loadUnlockedAchievements, unlockAchievements, UserProfile } from '../utils/storage';
 import { cancelStreakNotif } from '../utils/notifications';
 import { ACHIEVEMENTS, AchievementDef, checkNewAchievements } from '../data/achievements';
 import { captureRef } from 'react-native-view-shot';
@@ -16,6 +16,8 @@ import SentenceRow from '../components/SentenceRow';
 import WordChip from '../components/WordChip';
 import { colors } from '../theme';
 import { ScreenBackground } from '../components/ui';
+import { playTickSound, preloadSounds } from '../utils/sound';
+import { triggerTap } from '../utils/haptics';
 
 // Dark premium mapping of the legacy palette keys used throughout this screen.
 const C = {
@@ -98,15 +100,18 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
   const [reportVisible, setReportVisible] = useState(false);
   const [reportSentenceId, setReportSentenceId] = useState<string | null>(null);
   const [reportNote, setReportNote] = useState('');
-  const [reportSending, setReportSending] = useState(false);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([]);
   const [achModalVisible, setAchModalVisible] = useState(false);
   const shareRef = useRef<any>(null);
   const hasRecorded = useRef(false);
+  // Latest recordWordResults() write — awaited before rebuilding the review pool.
+  const lastRecord = useRef<Promise<unknown>>(Promise.resolve());
+  const timerBlink = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadProfile().then(setProfile);
+    preloadSounds();
   }, []);
 
   const total = card.sentences.length;
@@ -124,6 +129,23 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     if (isUnlimited) return;
     if (timeLeft <= 0 && phase === 'answering') setTimedOut(true);
   }, [timeLeft, phase, isUnlimited]);
+
+  // Final-5-seconds warning: tick sound + haptic each second + red blink (item 21)
+  const inWarning = !isUnlimited && phase === 'answering' && !timedOut && timeLeft <= 5 && timeLeft >= 1;
+
+  useEffect(() => {
+    if (inWarning) { playTickSound(); triggerTap(); }
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!inWarning) { timerBlink.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(timerBlink, { toValue: 0.25, duration: 300, useNativeDriver: true }),
+      Animated.timing(timerBlink, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => { loop.stop(); timerBlink.setValue(1); };
+  }, [inWarning]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedWord = selectedWordId
     ? wordPool.find(w => w.id === selectedWordId) ?? null
@@ -183,8 +205,10 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     setTimedOut(false);
     setPhase('results');
 
-    // Always track word-level progress regardless of daily goal recording
-    recordWordResults(level, correctWordIds, wrongWordIds);
+    // Always track word-level progress regardless of daily goal recording.
+    // Keep the write promise so a following "Yeni Tur" reloads a fresh review
+    // pool only after it persists (item 9 — mastered words drop dynamically).
+    lastRecord.current = recordWordResults(level, correctWordIds, wrongWordIds);
 
     if (shouldRecord && profile && !hasRecorded.current) {
       hasRecorded.current = true;
@@ -206,7 +230,10 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         }
 
         shouldPromptReview().then(yes => {
-          if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+          if (!yes) return;
+          StoreReview.isAvailableAsync().then(ok => {
+            if (ok) { StoreReview.requestReview(); markReviewShown(); }
+          });
         });
       });
     }
@@ -244,30 +271,26 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     setReportVisible(true);
   }
 
-  async function submitReport() {
+  function submitReport() {
     if (!reportSentenceId) return;
     const sentence = card.sentences.find(s => s.id === reportSentenceId);
     if (!sentence) return;
-    setReportSending(true);
-    try {
-      await sendReport('reports', {
-        game: 'boşluk_doldurma',
-        level,
-        theme: card.theme,
-        sentence: sentence.germanWithBlank,
-        targetWord: sentence.targetWord,
-        translationTR: sentence.translationTR ?? '',
-        wordBankId: sentence.wordBankId ?? '',
-        note: reportNote.trim(),
-      });
-      setReportedIds(prev => new Set(prev).add(reportSentenceId));
-      setReportVisible(false);
-      Alert.alert('Teşekkürler!', 'Hata bildirimin alındı, inceleyeceğiz.');
-    } catch (e: any) {
-      Alert.alert('Hata', `Gönderim başarısız: ${e?.code ?? e?.message ?? 'bilinmeyen hata'}`);
-    } finally {
-      setReportSending(false);
-    }
+    const payload = {
+      game: 'boşluk_doldurma',
+      level,
+      theme: card.theme,
+      sentence: sentence.germanWithBlank,
+      targetWord: sentence.targetWord,
+      translationTR: sentence.translationTR ?? '',
+      wordBankId: sentence.wordBankId ?? '',
+      note: reportNote.trim(),
+    };
+    // Close the sheet immediately and send in the background. On Android a hung
+    // Firestore write used to block here and leave the modal stuck open (item 3).
+    setReportedIds(prev => new Set(prev).add(reportSentenceId));
+    setReportVisible(false);
+    Alert.alert('Teşekkürler!', 'Hata bildirimin alındı, inceleyeceğiz.');
+    sendReport('reports', payload).catch(() => {});
   }
 
   async function captureAndShare() {
@@ -284,8 +307,47 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
     }
   }
 
+  const startNextCard = useCallback((reviewIds: string[]) => {
+    // In review mode, once every word is mastered there is nothing left to drill.
+    if (isReviewMode && reviewIds.length === 0) {
+      Alert.alert(
+        'Tebrikler! 🎉',
+        'Bu seviyedeki tüm tekrar kelimelerini öğrendin.',
+        [{ text: 'Bitir', onPress: () => navigation.goBack() }],
+      );
+      return;
+    }
+    const newCard = isReviewMode
+      ? generateCard(5, [], reviewIds, level)
+      : generateCard(5, masteredIds, undefined, level);
+    setCard(newCard);
+    setWordPool(buildWordPool(newCard));
+    setSlots(buildEmptySlots(newCard));
+    setPlacedWordIds(new Set());
+    setSelectedWordId(null);
+    setReportedIds(new Set()); // item 17 — don't leak "reported" onto the next card
+    setTimeLeft(duration);
+    setPhase('answering');
+    setTimedOut(false);
+    setScoreData(null);
+    setGoalJustMet(false);
+    hasRecorded.current = false;
+  }, [duration, isReviewMode, level, masteredIds, navigation]);
+
   const handleRestart = useCallback(() => {
-    // Timer ran out and user skips results view — still record words
+    const proceed = () => {
+      if (isReviewMode) {
+        // Reload the freshly persisted wrongIds so mastered words drop from the
+        // review pool within the session (item 9), not only after going back.
+        lastRecord.current
+          .then(() => loadAllProgress())
+          .then(all => startNextCard(all[level].wrongIds));
+      } else {
+        startNextCard([]);
+      }
+    };
+
+    // Timer ran out and user skips results view — still record words first
     if (timedOut) {
       const correctIds: string[] = [];
       const wrongIds: string[] = [];
@@ -295,23 +357,10 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
         const isCorrect = !!slot.filledWord && slot.filledWord.toLowerCase() === s.targetWord.toLowerCase();
         (isCorrect ? correctIds : wrongIds).push(s.wordBankId);
       });
-      recordWordResults(level, correctIds, wrongIds);
+      lastRecord.current = recordWordResults(level, correctIds, wrongIds);
     }
-
-    const newCard = isReviewMode ? generateCard(5, [], reviewWordIds, level) : generateCard(5, masteredIds, undefined, level);
-    setCard(newCard);
-    setWordPool(buildWordPool(newCard));
-    setSlots(buildEmptySlots(newCard));
-    setPlacedWordIds(new Set());
-    setSelectedWordId(null);
-    setTimeLeft(duration);
-    setPhase('answering');
-    setTimedOut(false);
-    setScoreData(null);
-
-    setGoalJustMet(false);
-    hasRecorded.current = false;
-  }, [duration, isReviewMode, reviewWordIds, timedOut, card.sentences, slots]);
+    proceed();
+  }, [isReviewMode, level, timedOut, card.sentences, slots, startNextCard]);
 
   const allSolved = phase === 'results' && solvedCount === total;
   const timerWarning = !isUnlimited && !allSolved && timeLeft <= 15 && timeLeft > 8;
@@ -346,7 +395,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
             )}
           </View>
         </View>
-        <View style={[styles.timerPill, { borderColor: timerColor }]}>
+        <Animated.View style={[styles.timerPill, { borderColor: timerColor, opacity: timerBlink }]}>
           <Text style={[styles.timerText, { color: timerColor }]}>
             {isUnlimited
               ? '∞'
@@ -355,7 +404,7 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
               : timedOut ? '0:00'
               : formatTime(timeLeft)}
           </Text>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Segment bar */}
@@ -572,12 +621,12 @@ export default function GameScreen({ navigation, route }: { navigation: any; rou
               <TouchableOpacity
                 style={[
                   styles.reportSubmitBtn,
-                  (reportSending || reportNote.trim().length === 0) && styles.reportSubmitBtnDisabled,
+                  reportNote.trim().length === 0 && styles.reportSubmitBtnDisabled,
                 ]}
                 onPress={submitReport}
-                disabled={reportSending || reportNote.trim().length === 0}
+                disabled={reportNote.trim().length === 0}
               >
-                <Text style={styles.reportSubmitText}>{reportSending ? 'Gönderiliyor…' : 'Gönder'}</Text>
+                <Text style={styles.reportSubmitText}>Gönder</Text>
               </TouchableOpacity>
             </View>
           </View>

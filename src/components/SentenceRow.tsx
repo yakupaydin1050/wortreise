@@ -283,9 +283,11 @@ const styles = StyleSheet.create({
   },
   text: { fontSize: 15, color: colors.text, lineHeight: 26, fontWeight: '500' },
   wordLink: {
+    // Dictionary words stay the normal text color so the sentence reads calmly;
+    // only a faint underline signals they are tappable for a translation.
     textDecorationLine: 'underline',
-    textDecorationColor: colors.primary,
-    color: colors.primary,
+    textDecorationColor: colors.textFaint,
+    color: colors.text,
   },
   blank: {
     borderWidth: 1.5,

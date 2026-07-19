@@ -16,9 +16,9 @@ import {
 import { triggerSelect } from '../utils/haptics';
 
 const DURATIONS = [
-  { label: '30sn', value: 30 },
   { label: '45sn', value: 45 },
   { label: '60sn', value: 60 },
+  { label: '120sn', value: 120 },
   { label: '∞', value: 0 },
 ];
 
@@ -41,7 +41,7 @@ export default function LevelScreenBase({ navigation, level, title, subtitleWord
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<AppStats | null>(null);
   const [progress, setProgress] = useState<LevelProgress | null>(null);
-  const [wordListMode, setWordListMode] = useState<'all' | 'favorites' | null>(null);
+  const [wordListMode, setWordListMode] = useState<'all' | 'favorites' | 'mastered' | null>(null);
   const [favCount, setFavCount] = useState(0);
 
   useFocusEffect(
@@ -88,11 +88,15 @@ export default function LevelScreenBase({ navigation, level, title, subtitleWord
                 onPress={() => { triggerSelect(); setSelectedDuration(d.value); }}
                 style={[
                   styles.durationBtn,
-                  active && { borderColor: alpha(accent, 0.5), backgroundColor: alpha(accent, 0.13) },
+                  active && {
+                    borderColor: accent,
+                    borderWidth: 1.5,
+                    backgroundColor: alpha(accent, 0.24),
+                  },
                 ]}
                 accessibilityLabel={d.label}
               >
-                <Text style={[styles.durationText, active && { color: accent, fontWeight: '800' }]}>
+                <Text style={[styles.durationText, active && { color: colors.text, fontWeight: '800' }]}>
                   {d.label}
                 </Text>
               </PressableScale>
@@ -177,6 +181,12 @@ export default function LevelScreenBase({ navigation, level, title, subtitleWord
                   )}
                 </>
               )}
+              <InteractiveButton
+                label={masteredLen > 0 ? `Öğrenilen Kelimeler — ${masteredLen} ›` : 'Öğrenilen Kelimeler'}
+                variant="success"
+                size="sm"
+                onPress={() => setWordListMode('mastered')}
+              />
             </GlassPanel>
           </>
         )}
@@ -187,9 +197,22 @@ export default function LevelScreenBase({ navigation, level, title, subtitleWord
         visible={wordListMode !== null}
         onClose={() => { setWordListMode(null); loadFavorites().then(f => setFavCount(f[level].length)); }}
         level={level}
-        words={wordsByLevel[level]}
-        title={wordListMode === 'favorites' ? `${level} Favorilerim` : `${level} Kelime Listesi`}
+        words={
+          wordListMode === 'mastered'
+            ? wordsByLevel[level].filter(w => (progress?.masteredIds ?? []).includes(w.id))
+            : wordsByLevel[level]
+        }
+        title={
+          wordListMode === 'favorites' ? `${level} Favorilerim`
+          : wordListMode === 'mastered' ? `${level} Öğrenilen Kelimeler`
+          : `${level} Kelime Listesi`
+        }
         favoritesOnly={wordListMode === 'favorites'}
+        emptyMessage={
+          wordListMode === 'mastered'
+            ? 'Henüz öğrenilen kelime yok.\n3 kez doğru yaptığın kelimeler burada görünecek.'
+            : undefined
+        }
       />
     </SafeAreaView>
   );

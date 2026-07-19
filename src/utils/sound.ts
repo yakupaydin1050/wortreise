@@ -7,6 +7,7 @@ const SOUND_KEY = '@lernspiel_sound';
 let _enabled = true;
 let _correctSound: Audio.Sound | null = null;
 let _wrongSound: Audio.Sound | null = null;
+let _tickSound: Audio.Sound | null = null;
 
 export async function loadAndApplySoundPreference(): Promise<void> {
   try {
@@ -28,15 +29,17 @@ export function getSoundEnabled(): boolean {
 
 export async function preloadSounds(): Promise<void> {
   if (Platform.OS === 'web') return;
-  if (_correctSound && _wrongSound) return;
+  if (_correctSound && _wrongSound && _tickSound) return;
   try {
     await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-    const [c, w] = await Promise.all([
+    const [c, w, t] = await Promise.all([
       Audio.Sound.createAsync(require('../../assets/sounds/correct.wav'), { shouldPlay: false, volume: 1 }),
       Audio.Sound.createAsync(require('../../assets/sounds/wrong.wav'), { shouldPlay: false, volume: 1 }),
+      Audio.Sound.createAsync(require('../../assets/sounds/tick.wav'), { shouldPlay: false, volume: 0.7 }),
     ]);
     _correctSound = c.sound;
     _wrongSound = w.sound;
+    _tickSound = t.sound;
   } catch {}
 }
 
@@ -66,6 +69,17 @@ export function playWrongSound(): void {
   }
   if (!_wrongSound) return;
   _wrongSound.setPositionAsync(0).then(() => _wrongSound!.playAsync().catch(() => {})).catch(() => {});
+}
+
+/** Soft countdown tick — used for the last seconds before time runs out. */
+export function playTickSound(): void {
+  if (!_enabled) return;
+  if (Platform.OS === 'web') {
+    playWebNotes([{ freq: 1100, start: 0, dur: 0.09, vol: 0.12 }]);
+    return;
+  }
+  if (!_tickSound) return;
+  _tickSound.setPositionAsync(0).then(() => _tickSound!.playAsync().catch(() => {})).catch(() => {});
 }
 
 interface WebNote { freq: number; start: number; dur: number; vol: number }

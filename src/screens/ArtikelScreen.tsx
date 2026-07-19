@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { recordStreakGame, addCoins } from '../utils/storage';
+import { recordStreakGame, addCoins, recordWordResults } from '../utils/storage';
 import type { LevelId } from '../utils/storage';
 import { wordsByLevel } from '../data/generateCard';
 import type { WordEntry } from '../data/wordBankA1';
@@ -13,11 +13,11 @@ import { alpha, colors, gameAccent } from '../theme';
 import { ScreenBackground } from '../components/ui';
 import { submitReport as sendReport } from '../utils/reporting';
 import * as Haptics from 'expo-haptics';
-import { triggerHaptic } from '../utils/haptics';
-import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
+import { triggerHaptic, triggerTap } from '../utils/haptics';
+import { playCorrectSound, playWrongSound, preloadSounds, playTickSound } from '../utils/sound';
 
 const getBestKey = (lvl: LevelId) => `@lernspiel_artikel_best_${lvl}`;
-const TIMER_SECONDS = 8;
+const TIMER_SECONDS = 9;
 const NOTCH_COUNT = 10;
 
 type Article = 'der' | 'die' | 'das';
@@ -117,6 +117,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   const wordScale = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const timerAnim = useRef(new Animated.Value(1)).current;
+  const timerBlink = useRef(new Animated.Value(1)).current;
 
   const currentWord = words[wordIdx % words.length];
   currentWordRef.current = currentWord ?? null;
@@ -160,6 +161,23 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     };
   }, [wordIdx, phase, feedback]);
 
+  // Final-3-seconds warning: tick sound + haptic each second + red blink (item 21)
+  const inWarning = phase === 'playing' && feedback === null && timeLeft <= 3 && timeLeft >= 1;
+
+  useEffect(() => {
+    if (inWarning) { playTickSound(); triggerTap(); }
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!inWarning) { timerBlink.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(timerBlink, { toValue: 0.25, duration: 250, useNativeDriver: true }),
+      Animated.timing(timerBlink, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => { loop.stop(); timerBlink.setValue(1); };
+  }, [inWarning]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function stopTimer() {
     clearInterval(intervalRef.current!);
     if (timerAnimObjRef.current) { timerAnimObjRef.current.stop(); timerAnimObjRef.current = null; }
@@ -168,7 +186,10 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
   function handleTimeout() {
     if (phaseRef.current !== 'playing' || feedbackRef.current !== null) return;
     const word = currentWordRef.current;
-    if (word) setHistory(prev => [...prev, { word, type: 'timeout' }]);
+    if (word) {
+      setHistory(prev => [...prev, { word, type: 'timeout' }]);
+      recordWordResults(level, [], [word.id]); // item 5 — feeds mastery/review
+    }
     stopTimer();
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
@@ -240,6 +261,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
 
     if (tapped === correct) {
       setHistory(prev => [...prev, { word: currentWord, type: 'correct' }]);
+      recordWordResults(level, [currentWord.id], []); // item 5 — 3× correct → mastered
       Animated.sequence([
         Animated.spring(wordScale, { toValue: 1.12, useNativeDriver: true, speed: 60, bounciness: 8 }),
         Animated.spring(wordScale, { toValue: 1, useNativeDriver: true, speed: 25, bounciness: 0 }),
@@ -252,6 +274,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
       advance(true, 900);
     } else {
       setHistory(prev => [...prev, { word: currentWord, type: 'wrong' }]);
+      recordWordResults(level, [], [currentWord.id]); // item 5 — feeds mastery/review
       Animated.sequence([
         Animated.timing(shakeAnim, { toValue: 14, duration: 50, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: -14, duration: 50, useNativeDriver: true }),
@@ -272,27 +295,22 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
     setReportVisible(true);
   }
 
-  async function submitReport() {
-    if (!reportWord || reportNote.trim().length === 0 || reportSending) return;
-    setReportSending(true);
-    try {
-      await sendReport('reports', {
-        game: 'artikel',
-        level,
-        article: reportWord.article,
-        noun: reportWord.noun,
-        tr: reportWord.tr,
-        wordId: reportWord.id,
-        note: reportNote.trim(),
-      });
-      setReportedIds(prev => new Set(prev).add(reportWord.id));
-      setReportSent(true);
-      setTimeout(() => setReportVisible(false), 1400);
-    } catch {
-      // silent fail
-    } finally {
-      setReportSending(false);
-    }
+  function submitReport() {
+    if (!reportWord || reportNote.trim().length === 0) return;
+    const payload = {
+      game: 'artikel',
+      level,
+      article: reportWord.article,
+      noun: reportWord.noun,
+      tr: reportWord.tr,
+      wordId: reportWord.id,
+      note: reportNote.trim(),
+    };
+    // Optimistic: confirm and auto-close without blocking on the network (item 3).
+    setReportedIds(prev => new Set(prev).add(reportWord.id));
+    setReportSent(true);
+    sendReport('reports', payload).catch(() => {});
+    setTimeout(() => setReportVisible(false), 1400);
   }
 
   const notchFilled = streak > 0 && streak % NOTCH_COUNT === 0 ? NOTCH_COUNT : streak % NOTCH_COUNT;
@@ -559,7 +577,7 @@ export default function ArtikelScreen({ navigation }: { navigation: any }) {
             backgroundColor: timerBarColor,
           }]} />
         </View>
-        <Text style={styles.timerNum}>{timeLeft}s</Text>
+        <Animated.Text style={[styles.timerNum, inWarning && { color: colors.danger }, { opacity: timerBlink }]}>{timeLeft}s</Animated.Text>
       </View>
 
       <View style={styles.gameBody}>

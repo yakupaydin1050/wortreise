@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getRandomWordPairs, WordPair, wordsByLevel } from '../data/generateCard';
 import {
-  recordMatchingGame, addCoins, shouldPromptReview,
+  recordMatchingGame, addCoins, shouldPromptReview, markReviewShown,
   loadStats, loadGameStats, loadAllProgress, loadUnlockedAchievements, unlockAchievements,
 } from '../utils/storage';
 import * as StoreReview from 'expo-store-review';
@@ -16,8 +16,8 @@ import { alpha, colors, gameAccent } from '../theme';
 import { ScreenBackground } from '../components/ui';
 import { submitReport as sendReport } from '../utils/reporting';
 import * as Haptics from 'expo-haptics';
-import { triggerHaptic } from '../utils/haptics';
-import { playCorrectSound, playWrongSound, preloadSounds } from '../utils/sound';
+import { triggerHaptic, triggerTap } from '../utils/haptics';
+import { playCorrectSound, playWrongSound, preloadSounds, playTickSound } from '../utils/sound';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAIR_COUNT = 10;
@@ -99,6 +99,7 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
   const wrongTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeLeftRef = useRef(60);
+  const timerBlink = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPairs, setShowPairs] = useState(false);
@@ -138,6 +139,23 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase, timerMode, roundKey]);
 
+  // Final-5-seconds warning: tick sound + haptic each second + red blink (item 21)
+  const inWarning = timerMode > 0 && phase === 'playing' && !isComplete && timeLeft <= 5 && timeLeft >= 1;
+
+  useEffect(() => {
+    if (inWarning) { playTickSound(); triggerTap(); }
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!inWarning) { timerBlink.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(timerBlink, { toValue: 0.25, duration: 300, useNativeDriver: true }),
+      Animated.timing(timerBlink, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => { loop.stop(); timerBlink.setValue(1); };
+  }, [inWarning]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (isComplete) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -160,7 +178,10 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
           setAchModalVisible(true);
         }
         shouldPromptReview().then(yes => {
-          if (yes) StoreReview.isAvailableAsync().then(ok => { if (ok) StoreReview.requestReview(); });
+          if (!yes) return;
+          StoreReview.isAvailableAsync().then(ok => {
+            if (ok) { StoreReview.requestReview(); markReviewShown(); }
+          });
         });
       })();
     }
@@ -234,26 +255,21 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
     setReportVisible(true);
   }
 
-  async function submitReport() {
-    if (!reportItem || reportNote.trim().length === 0 || reportSending) return;
-    setReportSending(true);
-    try {
-      await sendReport('reports', {
-        game: 'eslestirme',
-        level,
-        german: reportItem.german,
-        turkish: reportItem.turkish,
-        wordId: reportItem.id,
-        note: reportNote.trim(),
-      });
-      setReportedIds(prev => new Set(prev).add(reportItem.id));
-      setReportSent(true);
-      setTimeout(() => setReportVisible(false), 1400);
-    } catch {
-      // silent fail
-    } finally {
-      setReportSending(false);
-    }
+  function submitReport() {
+    if (!reportItem || reportNote.trim().length === 0) return;
+    const payload = {
+      game: 'eslestirme',
+      level,
+      german: reportItem.german,
+      turkish: reportItem.turkish,
+      wordId: reportItem.id,
+      note: reportNote.trim(),
+    };
+    // Optimistic: confirm and auto-close without blocking on the network (item 3).
+    setReportedIds(prev => new Set(prev).add(reportItem.id));
+    setReportSent(true);
+    sendReport('reports', payload).catch(() => {});
+    setTimeout(() => setReportVisible(false), 1400);
   }
 
   function colorOfId(id: string): string {
@@ -378,9 +394,9 @@ export default function MatchingScreen({ navigation }: { navigation: any }) {
           </Text>
         </View>
         {timerMode > 0 ? (
-          <View style={[styles.scorePill, { borderColor: timerColor }]}>
+          <Animated.View style={[styles.scorePill, { borderColor: timerColor, opacity: timerBlink }]}>
             <Text style={[styles.scoreText, { color: timerColor }]}>{timeLeft}s</Text>
-          </View>
+          </Animated.View>
         ) : (
           <View style={styles.scorePill}>
             <Text style={styles.scoreText}>{matchedCount}/{PAIR_COUNT}</Text>
